@@ -5,6 +5,7 @@ import { Navbar } from '@/components/layout/navbar'
 import { siteConfig } from '@/lib/config'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthGuard } from "@/components/auth/auth-guard"
+import { ThemeWrapper } from '@/components/layout/theme-wrapper'
 
 const inter = Inter({
   subsets: ["latin"],
@@ -27,9 +28,11 @@ export default function RootLayout({
         className={`${inter.variable} font-sans antialiased`}
       >
         <AuthGuard>
-          <Navbar />
-          {children}
-          <Toaster />
+          <ThemeWrapper>
+            <Navbar />
+            {children}
+            <Toaster />
+          </ThemeWrapper>
         </AuthGuard>
       </body>
     </html>
