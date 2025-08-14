@@ -12,6 +12,7 @@ import { Loader2, Heart, Users } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth-store'
 import { useSiteConfig } from '@/lib/use-site-config'
 import { toast } from 'sonner'
+import PasswordPolicyValidator from '@/components/ui/password-policy-validator'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -55,10 +56,7 @@ export default function RegisterPage() {
       return
     }
 
-    if (formData.password.length < 6) {
-      setError('密码长度至少为6位')
-      return
-    }
+    // 密码策略验证将在后端进行，这里只做基本检查
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
@@ -210,19 +208,13 @@ export default function RegisterPage() {
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="password">密码</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="请输入密码（至少6位）"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={isLoading}
-                required
-              />
-            </div>
+            <PasswordPolicyValidator
+              password={formData.password}
+              onPasswordChange={(password) => setFormData(prev => ({ ...prev, password }))}
+              label="密码"
+              placeholder="请输入密码"
+              disabled={isLoading}
+            />
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">确认密码</Label>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@/generated/prisma';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { validatePasswordPolicy } from '@/lib/security';
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -98,9 +99,11 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      if (newPassword.length < 6) {
+      // 验证新密码策略
+      const passwordValidation = await validatePasswordPolicy(newPassword);
+      if (!passwordValidation.valid) {
         return NextResponse.json(
-          { error: '新密码长度至少为6位' },
+          { error: `新密码不符合安全策略: ${passwordValidation.errors.join(', ')}` },
           { status: 400 }
         );
       }

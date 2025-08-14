@@ -450,7 +450,7 @@ export function FeatureSettings() {
                                   type="number"
                                   value={String(settingValue)}
                                   onChange={(e) => 
-                                    updateFeatureSetting(categoryKey, featureKey, settingKey, parseInt(e.target.value))
+                                    updateFeatureSetting(categoryKey, featureKey, settingKey, parseInt(e.target.value) || 0)
                                   }
                                   className="w-20"
                                 />

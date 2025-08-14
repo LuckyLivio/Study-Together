@@ -2,8 +2,17 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { ChatMessage, generateMessageId } from './ai-config'
 
+interface Conversation {
+  id: string
+  title: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 interface AIStore {
-  // 聊天消息
+  // 当前对话和消息
+  currentConversationId: string | null
+  conversations: Conversation[]
   messages: ChatMessage[]
   isLoading: boolean
   error: string | null
@@ -12,9 +21,15 @@ interface AIStore {
   isAIEnabled: boolean
   maxMessages: number
   
-  // 操作方法
+  // 对话管理
+  loadConversations: () => Promise<void>
+  createConversation: (title?: string) => Promise<string | null>
+  selectConversation: (conversationId: string) => Promise<void>
+  deleteConversation: (conversationId: string) => Promise<void>
+  
+  // 消息操作
+  loadMessages: (conversationId: string) => Promise<void>
   addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void
-  updateLastMessage: (content: string) => void
   clearMessages: () => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
@@ -31,13 +46,112 @@ export const useAIStore = create<AIStore>()(
   persist(
     (set, get) => ({
       // 初始状态
+      currentConversationId: null,
+      conversations: [],
       messages: [],
       isLoading: false,
       error: null,
       isAIEnabled: true,
       maxMessages: 50,
       
-      // 添加消息
+      // 加载对话列表
+      loadConversations: async () => {
+        try {
+          const response = await fetch('/api/chat/conversations')
+          if (response.ok) {
+            const data = await response.json()
+            const conversations = data.conversations.map((conv: any) => ({
+              ...conv,
+              createdAt: new Date(conv.createdAt),
+              updatedAt: new Date(conv.updatedAt)
+            }))
+            set({ conversations })
+          }
+        } catch (error) {
+          console.error('Failed to load conversations:', error)
+        }
+      },
+      
+      // 创建新对话
+      createConversation: async (title?: string) => {
+        try {
+          const response = await fetch('/api/chat/conversations', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ title })
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            const newConversation = {
+              ...data.conversation,
+              createdAt: new Date(data.conversation.createdAt),
+              updatedAt: new Date(data.conversation.updatedAt)
+            }
+            
+            set((state) => ({
+              conversations: [newConversation, ...state.conversations],
+              currentConversationId: newConversation.id,
+              messages: []
+            }))
+            
+            return newConversation.id
+          }
+        } catch (error) {
+          console.error('Failed to create conversation:', error)
+        }
+        return null
+      },
+      
+      // 选择对话
+      selectConversation: async (conversationId: string) => {
+        set({ currentConversationId: conversationId })
+        await get().loadMessages(conversationId)
+      },
+      
+      // 删除对话
+      deleteConversation: async (conversationId: string) => {
+        try {
+          const response = await fetch(`/api/chat/conversations?conversationId=${conversationId}`, {
+            method: 'DELETE'
+          })
+          
+          if (response.ok) {
+            set((state) => {
+              const newConversations = state.conversations.filter(conv => conv.id !== conversationId)
+              const newCurrentId = state.currentConversationId === conversationId ? null : state.currentConversationId
+              return {
+                conversations: newConversations,
+                currentConversationId: newCurrentId,
+                messages: newCurrentId ? state.messages : []
+              }
+            })
+          }
+        } catch (error) {
+          console.error('Failed to delete conversation:', error)
+        }
+      },
+      
+      // 加载消息
+      loadMessages: async (conversationId: string) => {
+        try {
+          const response = await fetch(`/api/chat/messages?conversationId=${conversationId}`)
+          if (response.ok) {
+            const data = await response.json()
+            const messages = data.messages.map((msg: any) => ({
+              ...msg,
+              timestamp: new Date(msg.createdAt)
+            }))
+            set({ messages })
+          }
+        } catch (error) {
+          console.error('Failed to load messages:', error)
+        }
+      },
+      
+      // 添加消息（仅用于UI更新）
       addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
         const newMessage: ChatMessage = {
           ...message,
@@ -45,30 +159,9 @@ export const useAIStore = create<AIStore>()(
           timestamp: new Date()
         }
         
-        set((state: AIStore) => {
-          const newMessages = [...state.messages, newMessage]
-          // 限制消息数量
-          if (newMessages.length > state.maxMessages) {
-            return {
-              messages: newMessages.slice(-state.maxMessages)
-            }
-          }
-          return { messages: newMessages }
-        })
-      },
-      
-      // 更新最后一条消息
-      updateLastMessage: (content: string) => {
-        set((state: AIStore) => {
-          const messages = [...state.messages]
-          if (messages.length > 0) {
-            messages[messages.length - 1] = {
-              ...messages[messages.length - 1],
-              content
-            }
-          }
-          return { messages }
-        })
+        set((state: AIStore) => ({
+          messages: [...state.messages, newMessage]
+        }))
       },
       
       // 清空消息
@@ -88,32 +181,42 @@ export const useAIStore = create<AIStore>()(
       
       // 发送消息到AI
       sendMessage: async (content: string, userId?: string, coupleId?: string) => {
-        const { addMessage, setLoading, setError, messages } = get()
-        
-        // 添加用户消息
-        addMessage({
-          role: 'user',
-          content: content.trim()
-        })
+        const { addMessage, setLoading, setError, currentConversationId, createConversation } = get()
         
         setLoading(true)
         setError(null)
         
         try {
+          // 如果没有当前对话，创建一个新的
+          let conversationId = currentConversationId
+          if (!conversationId) {
+            conversationId = await createConversation('新对话')
+            if (!conversationId) {
+              throw new Error('无法创建对话')
+            }
+          }
+          
+          // 添加用户消息到UI
+          addMessage({
+            role: 'user',
+            content: content.trim()
+          })
+          
           const response = await fetch('/api/ai/chat', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              messages: [...messages, {
+              messages: [{
                 id: generateMessageId(),
                 role: 'user',
                 content: content.trim(),
                 timestamp: new Date()
               }],
               userId,
-              coupleId
+              coupleId,
+              conversationId
             }),
           })
           
@@ -124,6 +227,7 @@ export const useAIStore = create<AIStore>()(
           }
           
           if (data.success && data.message) {
+            // 添加AI回复到UI
             addMessage({
               role: 'assistant',
               content: data.message.content
@@ -159,34 +263,13 @@ export const useAIStore = create<AIStore>()(
     {
       name: 'ai-store',
       partialize: (state: AIStore) => ({
-        messages: state.messages,
         isAIEnabled: state.isAIEnabled,
         maxMessages: state.maxMessages
-      }),
-      storage: {
-        getItem: (name) => {
-          const str = localStorage.getItem(name)
-          if (!str) return null
-          const data = JSON.parse(str)
-          // 恢复 Date 对象
-          if (data.state?.messages) {
-            data.state.messages = data.state.messages.map((msg: any) => ({
-              ...msg,
-              timestamp: new Date(msg.timestamp)
-            }))
-          }
-          return data
-        },
-        setItem: (name, value) => {
-          localStorage.setItem(name, JSON.stringify(value))
-        },
-        removeItem: (name) => {
-          localStorage.removeItem(name)
-        }
-      }
+      })
     }
   )
 )
 
 // 导出类型
 export type { ChatMessage } from './ai-config'
+export type { Conversation }

@@ -1,4 +1,4 @@
-const { PrismaClient } = require('./src/generated/prisma');
+const { PrismaClient } = require('../src/generated/prisma');
 require('dotenv').config();
 
 // 测试数据库连接
