@@ -4,17 +4,18 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Loader2, User, Heart, Users, Copy, Share, Plus, CheckCircle } from 'lucide-react'
+import { Loader2, User, Heart, Users, Copy, Share, Plus, CheckCircle, Shield, Key } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth-store'
 import { useSiteConfig } from '@/lib/use-site-config'
 
 export default function ProfilePage() {
-  const { user, couple, generateInviteCode, joinByInviteCode, updateProfile, isLoading } = useAuthStore()
+  const { user, couple, generateInviteCode, joinByInviteCode, updateProfile, changePassword, isLoading } = useAuthStore()
   const { config } = useSiteConfig()
   
   const [inviteCode, setInviteCode] = useState('')
@@ -33,8 +34,19 @@ export default function ProfilePage() {
   const [editForm, setEditForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    gender: user?.gender || 'MALE'
+    gender: user?.gender || 'MALE',
+    bio: user?.bio || ''
   })
+  
+  // 密码修改相关状态
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState('')
+  const [passwordMessageType, setPasswordMessageType] = useState<'success' | 'error'>('success')
   
   // 当用户数据变化时更新表单
   useEffect(() => {
@@ -42,7 +54,8 @@ export default function ProfilePage() {
       setEditForm({
         name: user.name,
         email: user.email,
-        gender: user.gender || 'MALE'
+        gender: user.gender || 'MALE',
+        bio: user.bio || ''
       })
     }
   }, [user])
@@ -51,6 +64,12 @@ export default function ProfilePage() {
     setMessage(text)
     setMessageType(type)
     setTimeout(() => setMessage(''), 5000)
+  }
+
+  const showPasswordMessage = (text: string, type: 'success' | 'error') => {
+    setPasswordMessage(text)
+    setPasswordMessageType(type)
+    setTimeout(() => setPasswordMessage(''), 5000)
   }
 
   const handleGenerateInvite = async () => {
@@ -82,7 +101,8 @@ export default function ProfilePage() {
     const result = await updateProfile({
       name: editForm.name.trim(),
       email: editForm.email.trim(),
-      gender: editForm.gender
+      gender: editForm.gender,
+      bio: editForm.bio.trim()
     })
 
     if (result.success) {
@@ -99,7 +119,8 @@ export default function ProfilePage() {
       setEditForm({
         name: user.name,
         email: user.email,
-        gender: user.gender || 'MALE'
+        gender: user.gender || 'MALE',
+        bio: user.bio || ''
       })
     }
     setIsEditing(false)
@@ -123,6 +144,47 @@ export default function ProfilePage() {
     }
     setIsJoining(false)
   }
+
+  const handleChangePassword = async () => {
+    // 验证表单
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      showPasswordMessage('请填写所有密码字段', 'error')
+      return
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      showPasswordMessage('新密码和确认密码不匹配', 'error')
+      return
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      showPasswordMessage('新密码长度至少为6位', 'error')
+      return
+    }
+
+    setIsChangingPassword(true)
+    setPasswordMessage('')
+
+    const result = await changePassword(
+        passwordForm.currentPassword,
+        passwordForm.newPassword
+      )
+
+    if (result.success) {
+      showPasswordMessage(result.message, 'success')
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      })
+    } else {
+      showPasswordMessage(result.message, 'error')
+    }
+
+    setIsChangingPassword(false)
+  }
+
+
 
   const copyToClipboard = async (text: string, type: 'code' | 'link') => {
     try {
@@ -178,6 +240,7 @@ export default function ProfilePage() {
         <TabsList>
           <TabsTrigger value="profile">个人信息</TabsTrigger>
           <TabsTrigger value="couple">情侣设置</TabsTrigger>
+          <TabsTrigger value="security">安全与密码</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -254,6 +317,27 @@ export default function ProfilePage() {
                   <Label htmlFor="joinDate">注册时间</Label>
                   <Input id="joinDate" value={new Date(user.createdAt).toLocaleDateString('zh-CN')} disabled />
                 </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="bio">个人简介</Label>
+                {isEditing ? (
+                  <Textarea 
+                    id="bio" 
+                    value={editForm.bio}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
+                    placeholder="请输入个人简介"
+                    rows={3}
+                  />
+                ) : (
+                  <Textarea 
+                    id="bio" 
+                    value={user.bio || '暂无简介'} 
+                    disabled 
+                    className="bg-gray-50"
+                    rows={3}
+                  />
+                )}
               </div>
               
               <div className="pt-4 flex gap-2">
@@ -514,6 +598,94 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                安全与密码
+              </CardTitle>
+              <CardDescription>
+                管理您的账户安全设置
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {passwordMessage && (
+                <Alert className={`${passwordMessageType === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-800'}`}>
+                  <AlertDescription>{passwordMessage}</AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  修改密码
+                </h3>
+                
+                <div className="grid gap-4">
+                  <div>
+                    <Label htmlFor="currentPassword">当前密码</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={passwordForm.currentPassword}
+                      onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      placeholder="请输入当前密码"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="newPassword">新密码</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                      placeholder="请输入新密码（至少6位）"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="confirmPassword">确认新密码</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      placeholder="请再次输入新密码"
+                    />
+                  </div>
+                  
+                  <Button
+                    onClick={handleChangePassword}
+                    disabled={isChangingPassword || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                    className="w-full"
+                  >
+                    {isChangingPassword ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        修改中...
+                      </>
+                    ) : (
+                      '修改密码'
+                    )}
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-medium mb-4">忘记密码</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  如果您忘记了密码，请联系管理员协助重置密码。
+                </p>
+                <Button variant="outline" onClick={() => window.open('mailto:admin@example.com?subject=密码重置请求&body=请协助重置我的账户密码，我的用户名是：' + (user?.email || ''), '_blank')}>
+                  联系管理员
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

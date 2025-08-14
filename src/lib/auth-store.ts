@@ -12,7 +12,8 @@ interface AuthStore extends AuthState {
   logout: () => void
   
   // 用户资料操作
-  updateProfile: (data: { name: string; email: string; gender?: string }) => Promise<{ success: boolean; message: string }>
+  updateProfile: (data: { name: string; email: string; gender?: string; bio?: string }) => Promise<{ success: boolean; message: string }>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>
   
   // 情侣绑定操作
   generateInviteCode: () => Promise<{ success: boolean; code?: string; link?: string; message: string }>
@@ -190,6 +191,7 @@ export const useAuthStore = create<AuthStore>()(
               name: result.user.displayName || result.user.name,
               email: result.user.email,
               gender: result.user.gender,
+              bio: result.user.bio,
               updatedAt: result.user.updatedAt
             }
 
@@ -200,6 +202,36 @@ export const useAuthStore = create<AuthStore>()(
           }
         } catch (error) {
           return { success: false, message: '更新失败，请重试' }
+        }
+      },
+
+      changePassword: async (currentPassword, newPassword) => {
+        const { user } = get()
+        if (!user) {
+          return { success: false, message: '请先登录' }
+        }
+
+        try {
+          const response = await fetch('/api/auth/profile', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              currentPassword,
+              newPassword
+            })
+          })
+
+          const result = await response.json()
+
+          if (response.ok) {
+            return { success: true, message: '密码修改成功' }
+          } else {
+            return { success: false, message: result.error || '密码修改失败' }
+          }
+        } catch (error) {
+          return { success: false, message: '密码修改失败，请重试' }
         }
       },
 
