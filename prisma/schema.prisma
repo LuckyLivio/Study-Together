@@ -13,3 +13,64 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  status    UserStatus @default(ACTIVE)
+  isAdmin   Boolean  @default(false)
+  
+  // Profile information
+  displayName String
+  bio         String?
+  avatar      String?
+  gender      Gender?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLogin DateTime?
+  
+  // Relationships
+  coupleId  String?
+  couple    Couple?  @relation(fields: [coupleId], references: [id])
+  
+  @@map("users")
+}
+
+model Couple {
+  id        String   @id @default(cuid())
+  name      String?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relationships
+  users     User[]
+  
+  @@map("couples")
+}
+
+enum Role {
+  USER
+  COUPLE
+  ADMIN
+  MODERATOR
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+  PENDING
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}

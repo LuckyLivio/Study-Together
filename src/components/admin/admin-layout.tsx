@@ -17,7 +17,7 @@ import {
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { SiteSettings } from './site-settings'
-import { UserSettings } from './user-settings'
+import { RealUserManagement } from './real-user-management'
 import { ApiSettings } from './api-settings'
 import { FeatureSettings } from './feature-settings'
 import { SecuritySettings } from './security-settings'
@@ -41,7 +41,7 @@ const renderContent = (activeTab: string) => {
     case 'site':
       return <SiteSettings />
     case 'users':
-      return <UserSettings />
+      return <RealUserManagement />
     case 'api':
       return <ApiSettings />
     case 'features':

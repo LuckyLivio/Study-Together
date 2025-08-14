@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Save, 
   Search, 
@@ -25,16 +26,38 @@ import {
   XCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { LocalStorage, STORAGE_KEYS } from '@/lib/storage'
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
-interface User {
+interface AdminUser {
   id: string
   username: string
   email: string
+  name: string
   role: 'admin' | 'moderator' | 'user' | 'couple'
   status: 'active' | 'inactive' | 'banned' | 'pending'
   createdAt: string
-  lastLogin: string
+  lastLogin?: string
   permissions: string[]
+  isAdmin?: boolean
+  gender?: 'male' | 'female'
+  coupleId?: string
+  partnerId?: string
   profile: {
     avatar?: string
     displayName: string
@@ -52,22 +75,30 @@ interface Role {
 }
 
 export function UserManagement() {
+  const formRef = useRef<HTMLFormElement>(null)
   const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'permissions'>('users')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRole, setSelectedRole] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
+  const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showAddDialog, setShowAddDialog] = useState(false)
 
-  // 模拟用户数据
-  const [users, setUsers] = useState<User[]>([
+  // 从本地存储加载用户数据
+  const [users, setUsers] = useState<AdminUser[]>([
     {
       id: '1',
       username: 'admin',
+      name: '系统管理员',
       email: 'admin@example.com',
       role: 'admin',
       status: 'active',
       createdAt: '2024-01-01',
       lastLogin: '2024-01-15',
       permissions: ['*'],
+      isAdmin: true,
       profile: {
         displayName: '系统管理员',
         bio: '网站管理员账户'
@@ -76,12 +107,14 @@ export function UserManagement() {
     {
       id: '2',
       username: 'couple_user1',
+      name: '小明',
       email: 'user1@example.com',
       role: 'couple',
       status: 'active',
       createdAt: '2024-01-05',
       lastLogin: '2024-01-14',
       permissions: ['read', 'write', 'couple_features'],
+      gender: 'male',
       profile: {
         displayName: '小明',
         bio: '热爱学习的情侣用户'
@@ -90,6 +123,7 @@ export function UserManagement() {
     {
       id: '3',
       username: 'moderator1',
+      name: '版主小王',
       email: 'mod@example.com',
       role: 'moderator',
       status: 'active',
@@ -155,6 +189,46 @@ export function UserManagement() {
 
   const handleSave = () => {
     toast.success('用户管理配置已更新')
+  }
+
+  const handleEditUser = (user: AdminUser) => {
+    setEditingUser(user)
+    setShowEditDialog(true)
+  }
+
+  const handleDeleteUser = (user: AdminUser) => {
+    setDeletingUser(user)
+    setShowDeleteDialog(true)
+  }
+
+  const handleUpdateUser = (updatedUser: AdminUser) => {
+    setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user))
+    setShowEditDialog(false)
+    setEditingUser(null)
+    toast.success('用户信息已更新')
+  }
+
+  const handleConfirmDelete = () => {
+    if (deletingUser) {
+      setUsers(users.filter(user => user.id !== deletingUser.id))
+      setShowDeleteDialog(false)
+      setDeletingUser(null)
+      toast.success('用户已删除')
+    }
+  }
+
+  const handleToggleUserStatus = (user: AdminUser) => {
+    const newStatus = user.status === 'active' ? 'inactive' : 'active'
+    const updatedUser = { ...user, status: newStatus as AdminUser['status'] }
+    setUsers(users.map(u => u.id === user.id ? updatedUser : u))
+    toast.success(`用户已${newStatus === 'active' ? '激活' : '停用'}`)
+  }
+
+  const handleBanUser = (user: AdminUser) => {
+    const newStatus = user.status === 'banned' ? 'active' : 'banned'
+    const updatedUser = { ...user, status: newStatus as AdminUser['status'] }
+    setUsers(users.map(u => u.id === user.id ? updatedUser : u))
+    toast.success(`用户已${newStatus === 'banned' ? '封禁' : '解封'}`)
   }
 
   const getRoleColor = (role: string) => {
@@ -228,10 +302,7 @@ export function UserManagement() {
           <option value="banned">已封禁</option>
           <option value="pending">待审核</option>
         </select>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          添加用户
-        </Button>
+        <Button onClick={() => setShowAddDialog(true)}>          <Plus className="h-4 w-4 mr-2" />          添加用户        </Button>
       </div>
 
       {/* 用户统计 */}
@@ -302,13 +373,56 @@ export function UserManagement() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleEditUser(user)}
+                  >
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleToggleUserStatus(user)}>
+                        {user.status === 'active' ? (
+                          <>
+                            <XCircle className="h-4 w-4 mr-2" />
+                            停用用户
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            激活用户
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleBanUser(user)}>
+                        {user.status === 'banned' ? (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            解除封禁
+                          </>
+                        ) : (
+                          <>
+                            <Ban className="h-4 w-4 mr-2" />
+                            封禁用户
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handleDeleteUser(user)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        删除用户
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>                </div>
               </div>
             ))}
           </div>
@@ -475,6 +589,183 @@ export function UserManagement() {
       {activeTab === 'users' && renderUsersTab()}
       {activeTab === 'roles' && renderRolesTab()}
       {activeTab === 'permissions' && renderPermissionsTab()}
+
+      {/* 编辑用户对话框 */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>编辑用户</DialogTitle>
+            <DialogDescription>
+              修改用户的基本信息和权限设置
+            </DialogDescription>
+          </DialogHeader>
+          {editingUser && (
+            <EditUserForm 
+              user={editingUser} 
+              roles={roles}
+              onSave={handleUpdateUser}
+              onCancel={() => setShowEditDialog(false)}
+              ref={formRef}
+            />
+          )}
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setShowEditDialog(false)}
+            >
+              取消
+            </Button>
+            <Button 
+              type="button"
+              onClick={() => formRef.current?.requestSubmit()}
+            >
+              保存更改
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 删除用户确认对话框 */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>确认删除用户</DialogTitle>
+            <DialogDescription>
+              您确定要删除用户 "{deletingUser?.profile.displayName}" 吗？此操作无法撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteDialog(false)}
+            >
+              取消
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleConfirmDelete}
+            >
+              确认删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
+
+// 编辑用户表单组件
+interface EditUserFormProps {
+  user: AdminUser
+  roles: Role[]
+  onSave: (user: AdminUser) => void
+  onCancel: () => void
+}
+
+const EditUserForm = React.forwardRef<HTMLFormElement, EditUserFormProps>(({ user, roles, onSave, onCancel }, ref) => {
+  const [formData, setFormData] = useState({
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    status: user.status,
+    displayName: user.profile.displayName,
+    bio: user.profile.bio || ''
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const updatedUser: AdminUser = {
+      ...user,
+      username: formData.username,
+      email: formData.email,
+      role: formData.role as 'user' | 'couple' | 'admin' | 'moderator',
+      status: formData.status as 'active' | 'inactive' | 'banned' | 'pending',
+      profile: {
+        ...user.profile,
+        displayName: formData.displayName,
+        bio: formData.bio
+      }
+    }
+    onSave(updatedUser)
+  }
+
+
+
+  return (
+    <form ref={ref} onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="username">用户名</Label>
+          <Input
+            id="username"
+            value={formData.username}
+            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="email">邮箱</Label>
+          <Input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            required
+          />
+        </div>
+      </div>
+      
+      <div>
+        <Label htmlFor="displayName">显示名称</Label>
+        <Input
+          id="displayName"
+          value={formData.displayName}
+          onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+          required
+        />
+      </div>
+      
+      <div>
+        <Label htmlFor="bio">个人简介</Label>
+        <Input
+          id="bio"
+          value={formData.bio}
+          onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+          placeholder="可选"
+        />
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="role">角色</Label>
+          <select
+            id="role"
+            value={formData.role}
+            onChange={(e) => setFormData({ ...formData, role: e.target.value as 'user' | 'couple' | 'admin' | 'moderator' })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          >
+            {roles.map(role => (
+              <option key={role.id} value={role.id}>{role.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label htmlFor="status">状态</Label>
+          <select
+            id="status"
+            value={formData.status}
+            onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'banned' | 'pending' })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          >
+            <option value="active">活跃</option>
+            <option value="inactive">非活跃</option>
+            <option value="banned">已封禁</option>
+            <option value="pending">待审核</option>
+          </select>
+        </div>
+      </div>
+      
+    </form>
+  )
+})

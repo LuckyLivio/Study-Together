@@ -32,7 +32,8 @@ export default function ProfilePage() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [editForm, setEditForm] = useState({
     name: user?.name || '',
-    email: user?.email || ''
+    email: user?.email || '',
+    gender: user?.gender || 'MALE'
   })
   
   // 当用户数据变化时更新表单
@@ -40,7 +41,8 @@ export default function ProfilePage() {
     if (user) {
       setEditForm({
         name: user.name,
-        email: user.email
+        email: user.email,
+        gender: user.gender || 'MALE'
       })
     }
   }, [user])
@@ -79,7 +81,8 @@ export default function ProfilePage() {
     setIsUpdating(true)
     const result = await updateProfile({
       name: editForm.name.trim(),
-      email: editForm.email.trim()
+      email: editForm.email.trim(),
+      gender: editForm.gender
     })
 
     if (result.success) {
@@ -95,7 +98,8 @@ export default function ProfilePage() {
     if (user) {
       setEditForm({
         name: user.name,
-        email: user.email
+        email: user.email,
+        gender: user.gender || 'MALE'
       })
     }
     setIsEditing(false)
@@ -218,13 +222,29 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <Label htmlFor="gender">性别</Label>
-                  <Input 
-                    id="gender" 
-                    value={user.gender === 'male' ? '男生' : '女生'} 
-                    disabled 
-                    className="bg-gray-50"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">性别信息不可修改</p>
+                  {isEditing ? (
+                    <select 
+                      id="gender"
+                      value={editForm.gender}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, gender: e.target.value as 'MALE' | 'FEMALE' | 'OTHER' }))}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="MALE">👨 男生</option>
+                      <option value="FEMALE">👩 女生</option>
+                      <option value="OTHER">🌈 其他</option>
+                    </select>
+                  ) : (
+                    <Input 
+                      id="gender" 
+                      value={
+                        user.gender === 'MALE' || user.gender === 'male' ? '👨 男生' : 
+                        user.gender === 'FEMALE' || user.gender === 'female' ? '👩 女生' : 
+                        '🌈 其他'
+                      } 
+                      disabled 
+                      className="bg-gray-50"
+                    />
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="role">角色</Label>
