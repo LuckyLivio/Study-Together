@@ -124,15 +124,24 @@ export function AdminAuth({ onAuthenticated }: AdminAuthProps) {
     const checkAuth = () => {
       // 这里应该检查实际的认证状态
       const token = localStorage.getItem('admin_token')
-      if (token) {
-        // 验证token有效性
-        setIsAuthenticated(true)
-        setShowLogin(false)
+      const userStr = localStorage.getItem('admin_user')
+      if (token && userStr) {
+        try {
+          const user = JSON.parse(userStr)
+          // 验证token有效性
+          setIsAuthenticated(true)
+          setShowLogin(false)
+          onAuthenticated(user)
+        } catch (error) {
+          console.error('解析用户信息失败:', error)
+          localStorage.removeItem('admin_token')
+          localStorage.removeItem('admin_user')
+        }
       }
     }
     
     checkAuth()
-  }, [])
+  }, [onAuthenticated])
 
   // 处理登录
   const handleLogin = async () => {

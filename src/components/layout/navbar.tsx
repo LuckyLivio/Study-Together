@@ -19,7 +19,8 @@ import {
   User,
   Heart,
   LogOut,
-  Users
+  Users,
+  Bot
 } from 'lucide-react'
 
 const navigation = [
@@ -28,7 +29,7 @@ const navigation = [
   { name: '课程表', href: '/schedule', icon: Calendar },
   { name: '资料库', href: '/files', icon: BookOpen },
   { name: '留言墙', href: '/messages', icon: MessageCircle },
-  { name: 'AI助手', href: '/ai', icon: MessageCircle },
+  { name: 'AI助手', href: '/ai', icon: Bot },
 ]
 
 export function Navbar() {

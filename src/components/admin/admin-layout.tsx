@@ -12,7 +12,8 @@ import {
   Info,
   Shield,
   Home,
-  LogOut
+  LogOut,
+  Server
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -21,6 +22,7 @@ import { RealUserManagement } from './real-user-management'
 import { ApiSettings } from './api-settings'
 import { FeatureSettings } from './feature-settings'
 import { SecuritySettings } from './security-settings'
+import { EnvSettings } from './env-settings'
 
 interface AdminLayoutProps {
   activeTab: string
@@ -31,6 +33,7 @@ interface AdminLayoutProps {
 const menuItems = [
   { id: 'site', label: '网站设置', icon: Settings },
   { id: 'users', label: '用户管理', icon: Users },
+  { id: 'env', label: '环境变量', icon: Server },
   { id: 'api', label: 'API设置', icon: Plug },
   { id: 'features', label: '功能管理', icon: ToggleLeft },
   { id: 'security', label: '安全管理', icon: Shield },
@@ -42,6 +45,8 @@ const renderContent = (activeTab: string) => {
       return <SiteSettings />
     case 'users':
       return <RealUserManagement />
+    case 'env':
+      return <EnvSettings />
     case 'api':
       return <ApiSettings />
     case 'features':
@@ -55,7 +60,8 @@ const renderContent = (activeTab: string) => {
 
 export function AdminLayout({ activeTab, onTabChange, onLogout }: AdminLayoutProps) {
   const handleLogout = () => {
-    localStorage.removeItem('admin_authenticated')
+    localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_user')
     toast.success('管理员已安全退出')
     if (onLogout) {
       onLogout()
