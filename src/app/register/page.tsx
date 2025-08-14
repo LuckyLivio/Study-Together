@@ -26,6 +26,7 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    gender: 'male' as 'male' | 'female',
     inviteCode: inviteCode || ''
   })
   const [error, setError] = useState('')
@@ -69,6 +70,7 @@ export default function RegisterPage() {
       name: formData.name,
       email: formData.email,
       password: formData.password,
+      gender: formData.gender,
       inviteCode: formData.inviteCode || undefined
     })
     
@@ -164,6 +166,36 @@ export default function RegisterPage() {
                 disabled={isLoading}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>性别</Label>
+              <div className="flex space-x-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="male"
+                    checked={formData.gender === 'male'}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    className="text-blue-600"
+                  />
+                  <span className="text-blue-600">👨 男生</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="female"
+                    checked={formData.gender === 'female'}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    className="text-pink-600"
+                  />
+                  <span className="text-pink-600">👩 女生</span>
+                </label>
+              </div>
             </div>
             
             <div className="space-y-2">

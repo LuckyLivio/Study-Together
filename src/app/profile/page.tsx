@@ -14,7 +14,7 @@ import { useAuthStore } from '@/lib/auth-store'
 import { useSiteConfig } from '@/lib/use-site-config'
 
 export default function ProfilePage() {
-  const { user, couple, generateInviteCode, joinByInviteCode, isLoading } = useAuthStore()
+  const { user, couple, generateInviteCode, joinByInviteCode, updateProfile, isLoading } = useAuthStore()
   const { config } = useSiteConfig()
   
   const [inviteCode, setInviteCode] = useState('')
@@ -26,6 +26,24 @@ export default function ProfilePage() {
   const [isJoining, setIsJoining] = useState(false)
   const [showInviteDialog, setShowInviteDialog] = useState(false)
   const [showJoinDialog, setShowJoinDialog] = useState(false)
+  
+  // 编辑资料相关状态
+  const [isEditing, setIsEditing] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [editForm, setEditForm] = useState({
+    name: user?.name || '',
+    email: user?.email || ''
+  })
+  
+  // 当用户数据变化时更新表单
+  useEffect(() => {
+    if (user) {
+      setEditForm({
+        name: user.name,
+        email: user.email
+      })
+    }
+  }, [user])
 
   const showMessage = (text: string, type: 'success' | 'error') => {
     setMessage(text)
@@ -45,6 +63,42 @@ export default function ProfilePage() {
       showMessage(result.message, 'error')
     }
     setIsGenerating(false)
+  }
+
+  const handleUpdateProfile = async () => {
+    if (!editForm.name.trim()) {
+      showMessage('姓名不能为空', 'error')
+      return
+    }
+
+    if (!editForm.email.trim()) {
+      showMessage('邮箱不能为空', 'error')
+      return
+    }
+
+    setIsUpdating(true)
+    const result = await updateProfile({
+      name: editForm.name.trim(),
+      email: editForm.email.trim()
+    })
+
+    if (result.success) {
+      showMessage(result.message, 'success')
+      setIsEditing(false)
+    } else {
+      showMessage(result.message, 'error')
+    }
+    setIsUpdating(false)
+  }
+
+  const handleCancelEdit = () => {
+    if (user) {
+      setEditForm({
+        name: user.name,
+        email: user.email
+      })
+    }
+    setIsEditing(false)
   }
 
   const handleJoinCouple = async () => {
@@ -137,15 +191,44 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">姓名</Label>
-                  <Input id="name" value={user.name} disabled />
+                  {isEditing ? (
+                    <Input 
+                      id="name" 
+                      value={editForm.name}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="请输入姓名"
+                    />
+                  ) : (
+                    <Input id="name" value={user.name} disabled />
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="email">邮箱</Label>
-                  <Input id="email" value={user.email} disabled />
+                  {isEditing ? (
+                    <Input 
+                      id="email" 
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="请输入邮箱"
+                    />
+                  ) : (
+                    <Input id="email" value={user.email} disabled />
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="gender">性别</Label>
+                  <Input 
+                    id="gender" 
+                    value={user.gender === 'male' ? '男生' : '女生'} 
+                    disabled 
+                    className="bg-gray-50"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">性别信息不可修改</p>
                 </div>
                 <div>
                   <Label htmlFor="role">角色</Label>
-                  <Input id="role" value={user.role === 'person1' ? '用户1' : '用户2'} disabled />
+                  <Input id="role" value={user.role === 'person1' ? '发起者' : '加入者'} disabled />
                 </div>
                 <div>
                   <Label htmlFor="joinDate">注册时间</Label>
@@ -153,10 +236,33 @@ export default function ProfilePage() {
                 </div>
               </div>
               
-              <div className="pt-4">
-                <Button variant="outline" disabled>
-                  编辑资料 (开发中)
-                </Button>
+              <div className="pt-4 flex gap-2">
+                {isEditing ? (
+                  <>
+                    <Button 
+                      onClick={handleUpdateProfile}
+                      disabled={isUpdating}
+                      className="flex items-center gap-2"
+                    >
+                      {isUpdating && <Loader2 className="h-4 w-4 animate-spin" />}
+                      保存修改
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleCancelEdit}
+                      disabled={isUpdating}
+                    >
+                      取消
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsEditing(true)}
+                  >
+                    编辑资料
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -5,6 +5,7 @@ export interface User {
   email: string
   name: string
   avatar?: string
+  gender: 'male' | 'female' // 性别：男性或女性
   createdAt: string
   updatedAt: string
   // 情侣相关
@@ -44,6 +45,7 @@ export interface RegisterCredentials {
   email: string
   password: string
   name: string
+  gender: 'male' | 'female' // 性别选择
   inviteCode?: string // 可选的情侣邀请码
 }
 

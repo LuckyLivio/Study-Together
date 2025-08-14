@@ -11,6 +11,9 @@ interface AuthStore extends AuthState {
   register: (credentials: RegisterCredentials) => Promise<{ success: boolean; message: string }>
   logout: () => void
   
+  // 用户资料操作
+  updateProfile: (data: { name: string; email: string }) => Promise<{ success: boolean; message: string }>
+  
   // 情侣绑定操作
   generateInviteCode: () => Promise<{ success: boolean; code?: string; link?: string; message: string }>
   joinByInviteCode: (code: string) => Promise<{ success: boolean; message: string }>
@@ -104,6 +107,7 @@ export const useAuthStore = create<AuthStore>()(
             id: userId,
             email: credentials.email,
             name: credentials.name,
+            gender: credentials.gender,
             createdAt: now,
             updatedAt: now,
             role: 'person1', // 默认角色，后续可能会根据情侣绑定调整
@@ -181,6 +185,54 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: false, 
           isLoading: false 
         })
+      },
+
+      updateProfile: async (data) => {
+        const { user } = get()
+        if (!user) {
+          return { success: false, message: '用户未登录' }
+        }
+
+        try {
+          await delay(500) // 模拟API调用
+
+          // 验证邮箱格式
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+          if (!emailRegex.test(data.email)) {
+            return { success: false, message: '邮箱格式不正确' }
+          }
+
+          // 验证姓名
+          if (!data.name.trim()) {
+            return { success: false, message: '姓名不能为空' }
+          }
+
+          // 检查邮箱是否已被其他用户使用
+          const users = LocalStorage.getItem(STORAGE_KEYS.USERS, []) as any[]
+          const emailExists = users.find(u => u.id !== user.id && u.email === data.email)
+          if (emailExists) {
+            return { success: false, message: '该邮箱已被使用' }
+          }
+
+          // 更新用户信息
+          const updatedUser = {
+            ...user,
+            name: data.name.trim(),
+            email: data.email,
+            updatedAt: new Date().toISOString()
+          }
+
+          // 更新本地存储中的用户列表
+          const updatedUsers = users.map(u => u.id === user.id ? { ...u, ...updatedUser } : u)
+          LocalStorage.setItem(STORAGE_KEYS.USERS, updatedUsers)
+
+          // 更新状态
+          set({ user: updatedUser })
+
+          return { success: true, message: '个人资料更新成功' }
+        } catch (error) {
+          return { success: false, message: '更新失败，请重试' }
+        }
       },
 
       generateInviteCode: async () => {
