@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     console.log('注册请求数据:', body);
-    const { username, displayName, name, email, password, gender, bio } = body;
+    const { username, displayName, name, email, password, gender, bio, inviteCode } = body;
 
     // 处理前端发送的name字段，将其用作username和displayName
     const finalUsername = username || name;
@@ -84,6 +84,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 如果有邀请码，验证邀请码
+    let couple = null;
+    if (inviteCode) {
+      couple = await prisma.couple.findUnique({
+        where: { inviteCode }
+      });
+
+      if (!couple) {
+        return NextResponse.json(
+          { error: '邀请码无效' },
+          { status: 400 }
+        );
+      }
+
+      if (couple.isComplete) {
+        return NextResponse.json(
+          { error: '该邀请码已被使用' },
+          { status: 400 }
+        );
+      }
+    }
+
     // 创建用户
     const user = await prisma.user.create({
       data: {
@@ -94,7 +116,8 @@ export async function POST(request: NextRequest) {
         role: Role.USER,
         status: UserStatus.ACTIVE,
         gender: genderEnum,
-        bio: bio || null
+        bio: bio || null,
+        coupleId: couple?.id || null
       },
       select: {
         id: true,
@@ -108,7 +131,8 @@ export async function POST(request: NextRequest) {
         avatar: true,
         isAdmin: true,
         createdAt: true,
-        updatedAt: true
+        updatedAt: true,
+        coupleId: true
       }
     });
 
@@ -123,11 +147,31 @@ export async function POST(request: NextRequest) {
       { expiresIn: '7d' }
     );
 
+    // 如果有邀请码，更新情侣记录
+    if (couple && inviteCode) {
+      couple = await prisma.couple.update({
+        where: { id: couple.id },
+        data: {
+          person2Id: user.id,
+          person2Name: user.displayName,
+          isComplete: true
+        }
+      });
+    }
+
+    // 添加情侣相关字段到用户对象
+    const userWithCoupleInfo = {
+      ...user,
+      partnerId: couple?.person1Id === user.id ? couple?.person2Id : couple?.person1Id,
+      partnerName: couple?.person1Id === user.id ? couple?.person2Name : couple?.person1Name
+    };
+
     // 设置HTTP-only cookie
     const response = NextResponse.json({
-      user,
+      user: userWithCoupleInfo,
+      couple: couple || null,
       token,
-      message: '注册成功'
+      message: inviteCode ? '注册成功，情侣绑定完成' : '注册成功'
     }, { status: 201 });
 
     response.cookies.set('auth-token', token, {

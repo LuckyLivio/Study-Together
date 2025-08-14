@@ -110,6 +110,12 @@ export function Navbar() {
                         个人资料
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/couple" className="cursor-pointer">
+                        <Heart className="mr-2 h-4 w-4" />
+                        情侣设置
+                      </Link>
+                    </DropdownMenuItem>
                     {user.isAdmin && (
                       <DropdownMenuItem asChild>
                         <Link href="/admin" className="cursor-pointer">

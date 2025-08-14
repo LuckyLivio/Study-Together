@@ -28,9 +28,18 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     // 初始化认证状态
-    initialize()
-    setIsInitialized(true)
-  }, [])
+    const initAuth = async () => {
+      try {
+        await initialize()
+      } catch (error) {
+        console.error('认证初始化失败:', error)
+      } finally {
+        setIsInitialized(true)
+      }
+    }
+    
+    initAuth()
+  }, [initialize])
 
   useEffect(() => {
     if (!isInitialized) return

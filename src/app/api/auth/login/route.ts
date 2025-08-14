@@ -28,6 +28,9 @@ export async function POST(request: NextRequest) {
           { username: loginIdentifier },
           { email: loginIdentifier }
         ]
+      },
+      include: {
+        couple: true
       }
     });
 
@@ -72,6 +75,24 @@ export async function POST(request: NextRequest) {
       { expiresIn: '7d' }
     );
 
+    // 获取伴侣信息
+    let partnerInfo = null;
+    if (user.coupleId && user.couple) {
+      const partnerId = user.couple.person1Id === user.id ? user.couple.person2Id : user.couple.person1Id;
+      if (partnerId) {
+        const partner = await prisma.user.findUnique({
+          where: { id: partnerId },
+          select: { id: true, displayName: true, username: true }
+        });
+        if (partner) {
+          partnerInfo = {
+            id: partner.id,
+            name: partner.displayName || partner.username
+          };
+        }
+      }
+    }
+
     // 返回用户信息（不包含密码）
     const userResponse = {
       id: user.id,
@@ -86,12 +107,16 @@ export async function POST(request: NextRequest) {
       isAdmin: user.isAdmin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      lastLogin: new Date()
+      lastLogin: new Date(),
+      coupleId: user.coupleId,
+      partnerId: partnerInfo?.id || null,
+      partnerName: partnerInfo?.name || null
     };
 
     // 设置HTTP-only cookie
     const response = NextResponse.json({
       user: userResponse,
+      couple: user.couple || null,
       token
     });
 
