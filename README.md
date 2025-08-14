@@ -41,9 +41,11 @@ Study Together 是一个现代化的 Web 应用，旨在帮助情侣们建立共
 - 管理员权限管理
 
 ### 👥 情侣互动
-- 情侣配对功能
+- 情侣配对功能（支持邀请码和邀请链接）
+- 自动情侣绑定系统
 - 共同学习目标设定
 - 学习进度同步
+- 前端状态实时同步
 
 ### 📚 学习管理
 - 个人学习计划制定
@@ -60,6 +62,12 @@ Study Together 是一个现代化的 Web 应用，旨在帮助情侣们建立共
 - 数据统计
 - 系统配置
 
+### 🔧 调试工具
+- 前端状态检查页面（/debug）
+- API 响应监控
+- 浏览器存储检查
+- 实时状态刷新功能
+
 ## 🚧 开发进度
 
 ### ✅ 已完成
@@ -73,11 +81,15 @@ Study Together 是一个现代化的 Web 应用，旨在帮助情侣们建立共
 - [x] 本地数据存储方案
 - [x] 用户名/邮箱双重登录支持
 - [x] 退出登录消息提示功能
+- [x] 情侣配对功能（邀请码生成和使用）
+- [x] 邀请链接注册自动绑定
+- [x] 前端状态同步机制
+- [x] 调试工具页面（/debug）
 
 ### 🔄 开发中
-- [ ] 情侣配对功能
 - [ ] 学习计划管理模块
 - [ ] 学习进度追踪系统
+- [ ] 情侣互动功能增强
 
 ### 📅 计划中
 - [ ] 实时通知系统
@@ -92,10 +104,20 @@ Study Together 是一个现代化的 Web 应用，旨在帮助情侣们建立共
 ### 环境要求
 - Node.js 18+
 - npm 或 yarn
+- 数据库（支持 SQLite/PostgreSQL/MySQL，默认使用 SQLite）
 
 ### 安装依赖
 ```bash
 npm install
+```
+
+### 数据库设置
+```bash
+# 生成 Prisma 客户端
+npx prisma generate
+
+# 初始化数据库
+npx prisma db push
 ```
 
 ### 启动开发服务器
@@ -104,6 +126,13 @@ npm run dev
 ```
 
 访问 [http://localhost:3000](http://localhost:3000) 查看应用。
+
+### 调试工具
+访问 [http://localhost:3000/debug](http://localhost:3000/debug) 查看调试页面，可以检查：
+- 前端认证状态
+- API 响应状态
+- 浏览器存储信息
+- 实时状态刷新
 
 ### 构建生产版本
 ```bash
@@ -116,10 +145,13 @@ npm run build
 src/
 ├── app/                 # Next.js App Router 页面
 │   ├── api/            # API 路由
-│   │   └── auth/       # 认证相关 API
+│   │   ├── auth/       # 认证相关 API（注册/登录/用户信息）
+│   │   └── couples/    # 情侣相关 API（邀请码生成/配对）
 │   ├── login/          # 登录页面
-│   ├── register/       # 注册页面
+│   ├── register/       # 注册页面（支持邀请码参数）
 │   ├── profile/        # 用户资料页面（含个人简介和密码管理）
+│   ├── couple/         # 情侣配对页面
+│   ├── debug/          # 调试工具页面
 │   └── admin/          # 管理后台
 ├── components/         # React 组件
 │   ├── ui/            # 基础 UI 组件
@@ -128,9 +160,12 @@ src/
 │   ├── layout/        # 布局组件
 │   └── admin/         # 管理后台组件
 ├── lib/               # 工具库和配置
-│   ├── auth-store.ts  # 认证状态管理
+│   ├── auth-store.ts  # 认证状态管理（含情侣状态同步）
 │   ├── storage.ts     # 本地存储工具
 │   └── utils.ts       # 通用工具函数
+├── prisma/            # 数据库相关
+│   └── schema.prisma  # 数据库模型定义
+├── tests/             # 测试文件
 └── types/             # TypeScript 类型定义
 ```
 

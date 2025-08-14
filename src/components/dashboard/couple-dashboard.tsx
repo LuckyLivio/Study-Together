@@ -222,7 +222,7 @@ export function CoupleDashboard() {
                 <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                   等待伴侣加入
                 </Badge>
-                <Link href="/profile">
+                <Link href="/couple">
                   <Button variant="outline" size="sm">
                     管理邀请
                   </Button>
@@ -233,7 +233,7 @@ export function CoupleDashboard() {
                 <Badge variant="secondary" className="bg-gray-100 text-gray-800">
                   未配对
                 </Badge>
-                <Link href="/profile">
+                <Link href="/couple">
                   <Button variant="outline" size="sm">
                     <Plus className="h-3 w-3 mr-1" />
                     创建或加入情侣
@@ -291,7 +291,7 @@ export function CoupleDashboard() {
                     : '创建情侣学习空间，与您的伴侣一起制定学习计划、互相监督进度。'
                   }
                 </p>
-                <Link href="/profile">
+                <Link href="/couple">
                   <Button className="bg-pink-600 hover:bg-pink-700">
                     <Users className="h-4 w-4 mr-2" />
                     {couple && !couple.isComplete ? '管理邀请' : '开始配对'}

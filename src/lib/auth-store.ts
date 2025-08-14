@@ -18,14 +18,18 @@ interface AuthStore extends AuthState {
   // 情侣绑定操作
   generateInviteCode: () => Promise<{ success: boolean; code?: string; link?: string; message: string }>
   joinByInviteCode: (code: string) => Promise<{ success: boolean; message: string }>
+  unbindCouple: () => Promise<{ success: boolean; message: string }>
   
-  // 状态更新
+  // 状态管理
   setUser: (user: User | null) => void
   setCouple: (couple: Couple | null) => void
   setLoading: (loading: boolean) => void
   
   // 初始化
-  initialize: () => void
+  initialize: () => Promise<void>
+  
+  // 刷新用户状态
+  refreshUserState: () => Promise<void>
 }
 
 // 模拟API调用的延迟
@@ -256,6 +260,9 @@ export const useAuthStore = create<AuthStore>()(
           if (response.ok && data.couple) {
             set({ couple: data.couple, isLoading: false })
             
+            // 刷新用户状态以确保同步
+            await get().refreshUserState()
+            
             const inviteLink = `${window.location.origin}/register?invite=${data.couple.inviteCode}`
             
             return {
@@ -293,14 +300,13 @@ export const useAuthStore = create<AuthStore>()(
           
           const data = await response.json()
           
-          if (response.ok && data.user && data.couple) {
+          if (response.ok && data.success && data.couple) {
             const updatedUser: User = {
               ...user,
               coupleId: data.user.coupleId,
               partnerId: data.user.partnerId,
               partnerName: data.user.partnerName,
-              role: data.user.role,
-              updatedAt: data.user.updatedAt
+              role: data.user.role
             }
             
             set({ 
@@ -309,7 +315,10 @@ export const useAuthStore = create<AuthStore>()(
               isLoading: false 
             })
             
-            return { success: true, message: '成功加入情侣！' }
+            // 刷新用户状态以确保同步
+            await get().refreshUserState()
+            
+            return { success: true, message: data.message || '成功加入情侣！' }
           } else {
             set({ isLoading: false })
             return { success: false, message: data.error || '加入失败' }
@@ -320,15 +329,107 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      unbindCouple: async () => {
+        const { user } = get()
+        if (!user) {
+          return { success: false, message: '请先登录' }
+        }
+        
+        set({ isLoading: true })
+        
+        try {
+          const response = await fetch('/api/couples/unbind', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+          
+          const data = await response.json()
+          
+          if (response.ok) {
+            // 清除情侣信息，更新用户角色
+            const updatedUser = {
+              ...user,
+              role: 'USER' as const,
+              coupleId: undefined,
+              partnerId: undefined,
+              partnerName: undefined
+            }
+            
+            set({ 
+              user: updatedUser,
+              couple: null,
+              isLoading: false 
+            })
+            
+            return { success: true, message: data.message || '解绑成功' }
+          } else {
+            set({ isLoading: false })
+            return { success: false, message: data.error || '解绑失败' }
+          }
+        } catch (error) {
+          set({ isLoading: false })
+          return { success: false, message: '解绑失败，请重试' }
+        }
+      },
+
       setUser: (user) => set({ user }),
       setCouple: (couple) => set({ couple }),
       setLoading: (isLoading) => set({ isLoading }),
 
-      initialize: () => {
+      initialize: async () => {
         // 从持久化存储中恢复状态时的初始化逻辑
         const { user } = get()
         if (user) {
           set({ isAuthenticated: true })
+          // 刷新用户状态以获取最新信息
+          try {
+            await get().refreshUserState()
+          } catch (error) {
+            console.error('初始化时刷新用户状态失败:', error)
+          }
+        }
+      },
+      
+      // 刷新用户状态
+      refreshUserState: async () => {
+        const { user } = get()
+        if (!user) return
+        
+        try {
+          const response = await fetch('/api/auth/me', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            if (data.user) {
+              const updatedUser: User = {
+                id: data.user.id,
+                email: data.user.email,
+                name: data.user.displayName || data.user.username,
+                gender: data.user.gender,
+                role: data.user.role,
+                isAdmin: data.user.isAdmin || false,
+                createdAt: data.user.createdAt,
+                updatedAt: data.user.updatedAt,
+                coupleId: data.user.coupleId,
+                partnerId: data.user.partnerId,
+                partnerName: data.user.partnerName
+              }
+              
+              set({ 
+                user: updatedUser,
+                couple: data.couple || null
+              })
+            }
+          }
+        } catch (error) {
+          console.error('刷新用户状态失败:', error)
         }
       }
     }),

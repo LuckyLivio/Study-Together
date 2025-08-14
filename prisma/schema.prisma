@@ -44,6 +44,14 @@ model User {
 model Couple {
   id        String   @id @default(cuid())
   name      String?
+  inviteCode String  @unique
+  
+  // Person information
+  person1Id   String?
+  person1Name String?
+  person2Id   String?
+  person2Name String?
+  isComplete  Boolean @default(false)
   
   // Timestamps
   createdAt DateTime @default(now())
