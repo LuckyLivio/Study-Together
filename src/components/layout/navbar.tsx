@@ -89,7 +89,7 @@ export function Navbar() {
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="bg-pink-100 text-pink-600">
-                          {user.name.charAt(0).toUpperCase()}
+                          {(user.name || 'U').charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                     </Button>

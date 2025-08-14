@@ -12,7 +12,7 @@ interface AuthStore extends AuthState {
   logout: () => void
   
   // 用户资料操作
-  updateProfile: (data: { name: string; email: string }) => Promise<{ success: boolean; message: string }>
+  updateProfile: (data: { name: string; email: string; gender?: string }) => Promise<{ success: boolean; message: string }>
   
   // 情侣绑定操作
   generateInviteCode: () => Promise<{ success: boolean; code?: string; link?: string; message: string }>
@@ -53,34 +53,45 @@ export const useAuthStore = create<AuthStore>()(
 
       login: async (credentials) => {
         set({ isLoading: true })
-        await delay(1000) // 模拟网络请求
         
         try {
-          // 从本地存储获取用户数据
-          const users = LocalStorage.getItem(STORAGE_KEYS.USERS, []) as any[]
-          const user = users.find((u: any) => 
-            (u.email === credentials.email || u.name === credentials.email) && u.password === credentials.password
-          )
-          
-          if (!user) {
-            set({ isLoading: false })
-            return { success: false, message: '用户名/邮箱或密码错误' }
-          }
-          
-          // 获取情侣信息
-          const couples = LocalStorage.getItem(STORAGE_KEYS.COUPLES, []) as any[]
-          const couple = couples.find((c: any) => 
-            c.person1Id === user.id || c.person2Id === user.id
-          )
-          
-          set({ 
-            user: { ...user, password: undefined }, // 不存储密码
-            couple,
-            isAuthenticated: true,
-            isLoading: false 
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(credentials),
           })
           
-          return { success: true, message: '登录成功' }
+          const data = await response.json()
+          
+          if (response.ok && data.user) {
+            const authUser: User = {
+              id: data.user.id,
+              email: data.user.email,
+              name: data.user.displayName || data.user.username,
+              gender: data.user.gender,
+              role: data.user.role,
+              isAdmin: data.user.isAdmin || false,
+              createdAt: data.user.createdAt,
+              updatedAt: data.user.updatedAt,
+              coupleId: data.user.coupleId,
+              partnerId: data.user.partnerId,
+              partnerName: data.user.partnerName
+            }
+            
+            set({ 
+              user: authUser,
+              couple: data.couple || null,
+              isAuthenticated: true,
+              isLoading: false 
+            })
+            
+            return { success: true, message: '登录成功' }
+          } else {
+            set({ isLoading: false })
+            return { success: false, message: data.error || '登录失败' }
+          }
         } catch (error) {
           set({ isLoading: false })
           return { success: false, message: '登录失败，请重试' }
@@ -89,88 +100,47 @@ export const useAuthStore = create<AuthStore>()(
 
       register: async (credentials) => {
         set({ isLoading: true })
-        await delay(1000)
         
         try {
-          const users = LocalStorage.getItem(STORAGE_KEYS.USERS, []) as any[]
-          
-          // 检查邮箱是否已存在
-          if (users.find((u: any) => u.email === credentials.email)) {
-            set({ isLoading: false })
-            return { success: false, message: '该邮箱已被注册' }
-          }
-          
-          const userId = generateId()
-          const now = new Date().toISOString()
-          
-          const newUser: User = {
-            id: userId,
-            email: credentials.email,
-            name: credentials.name,
-            gender: credentials.gender,
-            createdAt: now,
-            updatedAt: now,
-            role: 'person1', // 默认角色，后续可能会根据情侣绑定调整
-            isAdmin: credentials.email === 'admin@studytogether.com' // 管理员邮箱自动设置为管理员
-          }
-          
-          // 保存用户（包含密码用于登录验证）
-          const userWithPassword = { ...newUser, password: credentials.password }
-          users.push(userWithPassword)
-          LocalStorage.setItem(STORAGE_KEYS.USERS, users)
-          
-          let couple: Couple | null = null
-          
-          // 如果有邀请码，尝试加入情侣
-          if (credentials.inviteCode) {
-            const couples = LocalStorage.getItem(STORAGE_KEYS.COUPLES, []) as any[]
-            const targetCouple = couples.find((c: any) => 
-              c.inviteCode === credentials.inviteCode && !c.isComplete
-            )
-            
-            if (targetCouple) {
-              // 加入现有情侣
-              targetCouple.person2Id = userId
-              targetCouple.person2Name = credentials.name
-              targetCouple.isComplete = true
-              targetCouple.updatedAt = now
-              
-              // 更新用户角色
-              newUser.coupleId = targetCouple.id
-              newUser.partnerId = targetCouple.person1Id
-              newUser.role = 'person2'
-              
-              // 更新第一个用户的伙伴信息
-              const person1Index = users.findIndex((u: any) => u.id === targetCouple.person1Id)
-              if (person1Index !== -1) {
-                users[person1Index].partnerId = userId
-                users[person1Index].partnerName = credentials.name
-                users[person1Index].coupleId = targetCouple.id
-              }
-              
-              // 更新当前用户
-              const currentUserIndex = users.findIndex((u: any) => u.id === userId)
-              if (currentUserIndex !== -1) {
-                users[currentUserIndex] = { ...users[currentUserIndex], ...newUser }
-              }
-              
-              LocalStorage.setItem(STORAGE_KEYS.USERS, users)
-              LocalStorage.setItem(STORAGE_KEYS.COUPLES, couples)
-              
-              couple = targetCouple
-            }
-          }
-          
-          set({ 
-            user: newUser,
-            couple,
-            isAuthenticated: true,
-            isLoading: false 
+          const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(credentials),
           })
           
-          return { 
-            success: true, 
-            message: couple ? '注册成功并已加入情侣！' : '注册成功' 
+          const data = await response.json()
+          
+          if (response.ok && data.user) {
+            const authUser: User = {
+              id: data.user.id,
+              email: data.user.email,
+              name: data.user.displayName || data.user.username,
+              gender: data.user.gender,
+              role: data.user.role,
+              isAdmin: data.user.isAdmin || false,
+              createdAt: data.user.createdAt,
+              updatedAt: data.user.updatedAt,
+              coupleId: data.user.coupleId,
+              partnerId: data.user.partnerId,
+              partnerName: data.user.partnerName
+            }
+            
+            set({ 
+              user: authUser,
+              couple: data.couple || null,
+              isAuthenticated: true,
+              isLoading: false 
+            })
+            
+            return { 
+              success: true, 
+              message: data.message || '注册成功'
+            }
+          } else {
+            set({ isLoading: false })
+            return { success: false, message: data.error || '注册失败' }
           }
         } catch (error) {
           set({ isLoading: false })
@@ -178,14 +148,24 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      logout: () => {
-        set({ 
-          user: null, 
-          couple: null, 
-          isAuthenticated: false, 
-          isLoading: false 
-        })
-      },
+      logout: async () => {
+         try {
+           await fetch('/api/auth/logout', {
+             method: 'POST',
+             headers: {
+               'Content-Type': 'application/json',
+             },
+           })
+         } catch (error) {
+           console.error('注销请求失败:', error)
+         }
+         
+         set({ 
+           user: null, 
+           couple: null, 
+           isAuthenticated: false 
+         })
+       },
 
       updateProfile: async (data) => {
         const { user } = get()
@@ -194,42 +174,30 @@ export const useAuthStore = create<AuthStore>()(
         }
 
         try {
-          await delay(500) // 模拟API调用
+          const response = await fetch('/api/auth/profile', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          })
 
-          // 验证邮箱格式
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-          if (!emailRegex.test(data.email)) {
-            return { success: false, message: '邮箱格式不正确' }
+          const result = await response.json()
+
+          if (response.ok && result.user) {
+            const updatedUser = {
+              ...user,
+              name: result.user.displayName || result.user.name,
+              email: result.user.email,
+              gender: result.user.gender,
+              updatedAt: result.user.updatedAt
+            }
+
+            set({ user: updatedUser })
+            return { success: true, message: '个人资料更新成功' }
+          } else {
+            return { success: false, message: result.error || '更新失败' }
           }
-
-          // 验证姓名
-          if (!data.name.trim()) {
-            return { success: false, message: '姓名不能为空' }
-          }
-
-          // 检查邮箱是否已被其他用户使用
-          const users = LocalStorage.getItem(STORAGE_KEYS.USERS, []) as any[]
-          const emailExists = users.find(u => u.id !== user.id && u.email === data.email)
-          if (emailExists) {
-            return { success: false, message: '该邮箱已被使用' }
-          }
-
-          // 更新用户信息
-          const updatedUser = {
-            ...user,
-            name: data.name.trim(),
-            email: data.email,
-            updatedAt: new Date().toISOString()
-          }
-
-          // 更新本地存储中的用户列表
-          const updatedUsers = users.map(u => u.id === user.id ? { ...u, ...updatedUser } : u)
-          LocalStorage.setItem(STORAGE_KEYS.USERS, updatedUsers)
-
-          // 更新状态
-          set({ user: updatedUser })
-
-          return { success: true, message: '个人资料更新成功' }
         } catch (error) {
           return { success: false, message: '更新失败，请重试' }
         }
@@ -242,65 +210,31 @@ export const useAuthStore = create<AuthStore>()(
         }
         
         set({ isLoading: true })
-        await delay(500)
         
         try {
-          const couples = LocalStorage.getItem(STORAGE_KEYS.COUPLES, []) as any[]
+          const response = await fetch('/api/couples/invite', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
           
-          // 检查用户是否已有情侣
-          const existingCouple = couples.find((c: any) => 
-            c.person1Id === user.id || c.person2Id === user.id
-          )
+          const data = await response.json()
           
-          if (existingCouple && existingCouple.isComplete) {
-            set({ isLoading: false })
-            return { success: false, message: '您已经有情侣了' }
-          }
-          
-          let couple: Couple
-          
-          if (existingCouple && !existingCouple.isComplete) {
-            // 使用现有的未完成情侣记录
-            couple = existingCouple
+          if (response.ok && data.couple) {
+            set({ couple: data.couple, isLoading: false })
+            
+            const inviteLink = `${window.location.origin}/register?invite=${data.couple.inviteCode}`
+            
+            return {
+              success: true,
+              code: data.couple.inviteCode,
+              link: inviteLink,
+              message: '邀请码生成成功'
+            }
           } else {
-            // 创建新的情侣记录
-            const coupleId = generateId()
-            const inviteCode = generateInviteCode()
-            const now = new Date().toISOString()
-            
-            couple = {
-              id: coupleId,
-              inviteCode,
-              person1Id: user.id,
-              person1Name: user.name,
-              createdAt: now,
-              updatedAt: now,
-              isComplete: false
-            }
-            
-            couples.push(couple)
-            
-            // 更新用户信息
-            const users = LocalStorage.getItem(STORAGE_KEYS.USERS, []) as any[]
-            const userIndex = users.findIndex((u: any) => u.id === user.id)
-            if (userIndex !== -1) {
-              users[userIndex].coupleId = coupleId
-            }
-            
-            LocalStorage.setItem(STORAGE_KEYS.USERS, users)
-          }
-          
-          LocalStorage.setItem(STORAGE_KEYS.COUPLES, couples)
-          
-          set({ couple, isLoading: false })
-          
-          const inviteLink = `${window.location.origin}/register?invite=${couple.inviteCode}`
-          
-          return {
-            success: true,
-            code: couple.inviteCode,
-            link: inviteLink,
-            message: '邀请码生成成功'
+            set({ isLoading: false })
+            return { success: false, message: data.error || '生成邀请码失败' }
           }
         } catch (error) {
           set({ isLoading: false })
@@ -315,61 +249,39 @@ export const useAuthStore = create<AuthStore>()(
         }
         
         set({ isLoading: true })
-        await delay(500)
         
         try {
-          const couples = LocalStorage.getItem(STORAGE_KEYS.COUPLES, []) as any[]
-          const targetCouple = couples.find((c: any) => 
-            c.inviteCode === code && !c.isComplete
-          )
-          
-          if (!targetCouple) {
-            set({ isLoading: false })
-            return { success: false, message: '邀请码无效或已过期' }
-          }
-          
-          if (targetCouple.person1Id === user.id) {
-            set({ isLoading: false })
-            return { success: false, message: '不能加入自己创建的情侣' }
-          }
-          
-          // 更新情侣信息
-          targetCouple.person2Id = user.id
-          targetCouple.person2Name = user.name
-          targetCouple.isComplete = true
-          targetCouple.updatedAt = new Date().toISOString()
-          
-          // 更新用户信息
-          const users = LocalStorage.getItem(STORAGE_KEYS.USERS, []) as any[]
-          
-          // 更新当前用户
-          const currentUserIndex = users.findIndex((u: any) => u.id === user.id)
-          if (currentUserIndex !== -1) {
-            users[currentUserIndex].coupleId = targetCouple.id
-            users[currentUserIndex].partnerId = targetCouple.person1Id
-            users[currentUserIndex].partnerName = targetCouple.person1Name
-            users[currentUserIndex].role = 'person2'
-          }
-          
-          // 更新伙伴用户
-          const partnerIndex = users.findIndex((u: any) => u.id === targetCouple.person1Id)
-          if (partnerIndex !== -1) {
-            users[partnerIndex].partnerId = user.id
-            users[partnerIndex].partnerName = user.name
-          }
-          
-          LocalStorage.setItem(STORAGE_KEYS.USERS, users)
-          LocalStorage.setItem(STORAGE_KEYS.COUPLES, couples)
-          
-          // 更新状态
-          const updatedUser = users[currentUserIndex]
-          set({ 
-            user: { ...updatedUser, password: undefined },
-            couple: targetCouple,
-            isLoading: false 
+          const response = await fetch('/api/couples/join', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ inviteCode: code }),
           })
           
-          return { success: true, message: '成功加入情侣！' }
+          const data = await response.json()
+          
+          if (response.ok && data.user && data.couple) {
+            const updatedUser: User = {
+              ...user,
+              coupleId: data.user.coupleId,
+              partnerId: data.user.partnerId,
+              partnerName: data.user.partnerName,
+              role: data.user.role,
+              updatedAt: data.user.updatedAt
+            }
+            
+            set({ 
+              user: updatedUser,
+              couple: data.couple,
+              isLoading: false 
+            })
+            
+            return { success: true, message: '成功加入情侣！' }
+          } else {
+            set({ isLoading: false })
+            return { success: false, message: data.error || '加入失败' }
+          }
         } catch (error) {
           set({ isLoading: false })
           return { success: false, message: '加入失败，请重试' }

@@ -7,6 +7,8 @@ import { siteConfig } from '@/lib/config'
 import { useSiteConfig } from '@/lib/use-site-config'
 import { useAuthStore } from '@/lib/auth-store'
 import { useUserStore, useTaskStore, useCountdownStore } from '@/lib/store'
+import { useTheme } from '@/lib/use-theme'
+import { getThemeVariables } from '@/lib/theme'
 import { Heart, Calendar, Target, BookOpen, Clock, Users, Plus } from 'lucide-react'
 import Link from 'next/link'
 
@@ -183,6 +185,11 @@ export function CoupleDashboard() {
   const { config, isLoading } = useSiteConfig()
   const siteName = config?.name || 'Study Together'
   const { user: authUser, couple } = useAuthStore()
+  const { theme } = useTheme()
+  
+  // 获取实际的颜色值
+  const themeColors = getThemeVariables(authUser?.gender || 'female')
+  const primaryColor = themeColors['--theme-primary']
   
   if (isLoading) {
     return (
@@ -244,9 +251,9 @@ export function CoupleDashboard() {
           {/* 左栏 - 我 */}
           <div>
             <PersonDashboard 
-              person={authUser?.role || "person1"}
+              person={(authUser?.role === 'person1' || authUser?.role === 'person2') ? authUser.role : "person1"}
               name={authUser?.role === 'person1' ? couple.person1Name || authUser?.name || '用户' : couple.person2Name || authUser?.name || '用户'}
-              color={authUser?.role === 'person1' ? config.couple.person1.color : config.couple.person2.color}
+              color={primaryColor}
             />
           </div>
           
@@ -263,9 +270,9 @@ export function CoupleDashboard() {
         /* 单人模式或未配对状态 */
         <div className="max-w-2xl mx-auto">
           <PersonDashboard 
-            person={authUser?.role || "person1"}
+            person={(authUser?.role === 'person1' || authUser?.role === 'person2') ? authUser.role : "person1"}
             name={authUser?.name || config.couple.person1.name}
-            color={config.couple.person1.color}
+            color={primaryColor}
           />
           
           {/* 邀请伴侣卡片 */}

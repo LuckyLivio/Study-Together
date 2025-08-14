@@ -26,7 +26,7 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    gender: 'male' as 'male' | 'female',
+    gender: 'male' as 'male' | 'female' | 'other',
     inviteCode: inviteCode || ''
   })
   const [error, setError] = useState('')
@@ -95,7 +95,7 @@ export default function RegisterPage() {
           router.push('/')
         }, 2000)
       } else {
-        toast.success('注册成功！请手动登录')
+        toast.success('注册成功！正在跳转到主页...')
         setTimeout(() => {
           router.push('/login')
         }, 1500)
@@ -170,7 +170,7 @@ export default function RegisterPage() {
 
             <div className="space-y-2">
               <Label>性别</Label>
-              <div className="flex space-x-4">
+              <div className="flex flex-wrap gap-4">
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="radio"
@@ -194,6 +194,18 @@ export default function RegisterPage() {
                     className="text-pink-600"
                   />
                   <span className="text-pink-600">👩 女生</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="other"
+                    checked={formData.gender === 'other'}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    className="text-purple-600"
+                  />
+                  <span className="text-purple-600">🌈 其他</span>
                 </label>
               </div>
             </div>

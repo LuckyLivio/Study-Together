@@ -139,20 +139,25 @@ export function AdminAuth({ onAuthenticated }: AdminAuthProps) {
     setLoading(true)
     
     try {
-      // 模拟登录验证
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // 调用管理员登录API
+      const response = await fetch('/api/auth/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: loginForm.username,
+          password: loginForm.password
+        })
+      })
       
-      if (loginForm.username === 'admin' && loginForm.password === 'admin123') {
-        const user = {
-          id: '1',
-          username: 'admin',
-          email: 'admin@example.com',
-          role: 'admin',
-          permissions: ['*']
-        }
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        const user = data.user
         
         // 保存认证信息
-        localStorage.setItem('admin_token', 'mock_token_' + Date.now())
+        localStorage.setItem('admin_token', data.token)
         localStorage.setItem('admin_user', JSON.stringify(user))
         
         setIsAuthenticated(true)
@@ -178,13 +183,14 @@ export function AdminAuth({ onAuthenticated }: AdminAuthProps) {
           userAgent: navigator.userAgent,
           timestamp: new Date().toLocaleString(),
           success: false,
-          reason: '用户名或密码错误'
+          reason: data.error || '登录失败'
         }
         setLoginHistory(prev => [newAttempt, ...prev])
         
-        toast.error('用户名或密码错误')
+        toast.error(data.error || '用户名或密码错误')
       }
     } catch (error) {
+      console.error('管理员登录错误:', error)
       toast.error('登录失败，请重试')
     } finally {
       setLoading(false)
@@ -311,9 +317,7 @@ export function AdminAuth({ onAuthenticated }: AdminAuthProps) {
               {loading ? '登录中...' : '登录'}
             </Button>
             
-            <div className="text-center text-sm text-gray-500">
-              <p>默认账户: admin / admin123</p>
-            </div>
+
           </CardContent>
         </Card>
       </div>

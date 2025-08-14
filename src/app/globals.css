@@ -131,6 +131,15 @@
   --theme-gradient-to: oklch(0.6 0.25 320);
 }
 
+.theme-other {
+  --theme-primary: oklch(0.65 0.2 280); /* 紫色 */
+  --theme-primary-foreground: oklch(0.985 0 0);
+  --theme-secondary: oklch(0.85 0.1 280);
+  --theme-accent: oklch(0.75 0.15 280);
+  --theme-gradient-from: oklch(0.65 0.2 280);
+  --theme-gradient-to: oklch(0.55 0.25 260);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

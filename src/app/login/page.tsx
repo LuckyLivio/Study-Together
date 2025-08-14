@@ -37,7 +37,7 @@ export default function LoginPage() {
     setError('')
     setSuccess('')
 
-    if (!formData.email || !formData.password) {
+    if (!formData.email.trim() || !formData.password.trim()) {
       setError('请填写所有字段')
       return
     }
@@ -62,7 +62,7 @@ export default function LoginPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value.trim()
     }))
   }
 

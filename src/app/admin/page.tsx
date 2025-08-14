@@ -29,7 +29,7 @@ export default function AdminPage() {
   }
 
   // 检查用户是否已登录且为管理员
-  if (!isAuthenticated || !user?.isAdmin) {
+  if (!isAuthenticated || (!user?.isAdmin && user?.role !== 'ADMIN')) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md">
