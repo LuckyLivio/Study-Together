@@ -158,7 +158,7 @@ export default function AIAssistantPage() {
                           message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
                         }`}
                       >
-                        {message.timestamp.toLocaleTimeString()}
+                        {new Date(message.timestamp).toLocaleTimeString()}
                       </div>
                     </div>
                     

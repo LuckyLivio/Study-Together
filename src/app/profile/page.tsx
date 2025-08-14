@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Loader2, User, Shield, Key } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth-store'
 import { useSiteConfig } from '@/lib/use-site-config'
+import PasswordPolicyValidator from '@/components/ui/password-policy-validator'
 
 export default function ProfilePage() {
   const { user, updateProfile, changePassword, isLoading } = useAuthStore()
@@ -122,10 +123,7 @@ export default function ProfilePage() {
       return
     }
 
-    if (passwordForm.newPassword.length < 6) {
-      showPasswordMessage('新密码长度至少为6位', 'error')
-      return
-    }
+    // 密码策略验证将在后端进行，这里只做基本检查
 
     setIsChangingPassword(true)
     setPasswordMessage('')
@@ -351,16 +349,12 @@ export default function ProfilePage() {
                     />
                   </div>
                   
-                  <div>
-                    <Label htmlFor="newPassword">新密码</Label>
-                    <Input
-                      id="newPassword"
-                      type="password"
-                      value={passwordForm.newPassword}
-                      onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                      placeholder="请输入新密码（至少6位）"
-                    />
-                  </div>
+                  <PasswordPolicyValidator
+                    password={passwordForm.newPassword}
+                    onPasswordChange={(newPassword) => setPasswordForm(prev => ({ ...prev, newPassword }))}
+                    label="新密码"
+                    placeholder="请输入新密码"
+                  />
                   
                   <div>
                     <Label htmlFor="confirmPassword">确认新密码</Label>

@@ -400,7 +400,7 @@ export function AdminAuth({ onAuthenticated }: AdminAuthProps) {
                 <Input
                   type="number"
                   value={securitySettings.maxLoginAttempts}
-                  onChange={(e) => updateSecuritySettings('maxLoginAttempts', parseInt(e.target.value))}
+                  onChange={(e) => updateSecuritySettings('maxLoginAttempts', parseInt(e.target.value) || 1)}
                   min={1}
                   max={10}
                 />
@@ -410,7 +410,7 @@ export function AdminAuth({ onAuthenticated }: AdminAuthProps) {
                 <Input
                   type="number"
                   value={securitySettings.lockoutDuration}
-                  onChange={(e) => updateSecuritySettings('lockoutDuration', parseInt(e.target.value))}
+                  onChange={(e) => updateSecuritySettings('lockoutDuration', parseInt(e.target.value) || 1)}
                   min={5}
                   max={1440}
                 />
@@ -420,7 +420,7 @@ export function AdminAuth({ onAuthenticated }: AdminAuthProps) {
                 <Input
                   type="number"
                   value={securitySettings.sessionTimeout}
-                  onChange={(e) => updateSecuritySettings('sessionTimeout', parseInt(e.target.value))}
+                  onChange={(e) => updateSecuritySettings('sessionTimeout', parseInt(e.target.value) || 5)}
                   min={30}
                   max={480}
                 />
@@ -444,7 +444,7 @@ export function AdminAuth({ onAuthenticated }: AdminAuthProps) {
                 <Input
                   type="number"
                   value={securitySettings.passwordPolicy.minLength}
-                  onChange={(e) => updatePasswordPolicy('minLength', parseInt(e.target.value))}
+                  onChange={(e) => updatePasswordPolicy('minLength', parseInt(e.target.value) || 6)}
                   min={6}
                   max={32}
                 />
@@ -454,7 +454,7 @@ export function AdminAuth({ onAuthenticated }: AdminAuthProps) {
                 <Input
                   type="number"
                   value={securitySettings.passwordPolicy.maxAge}
-                  onChange={(e) => updatePasswordPolicy('maxAge', parseInt(e.target.value))}
+                  onChange={(e) => updatePasswordPolicy('maxAge', parseInt(e.target.value) || 30)}
                   min={30}
                   max={365}
                 />

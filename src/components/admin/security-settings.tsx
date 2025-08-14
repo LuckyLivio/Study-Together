@@ -68,54 +68,61 @@ export function SecuritySettings() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [newIP, setNewIP] = useState('')
 
+  // 加载安全设置和登录记录
   useEffect(() => {
-    // 加载安全设置
-    const savedSettings = LocalStorage.getItem(STORAGE_KEYS.SECURITY_SETTINGS, null)
-    if (savedSettings) {
-      setSettings(savedSettings)
-    }
-    
-    // 加载上次保存时间
-    const savedTime = LocalStorage.getItem(STORAGE_KEYS.SECURITY_LAST_SAVED, null)
-    if (savedTime) {
-      setLastSaved(new Date(savedTime))
-    }
-    
-    // 模拟登录尝试记录
-    const mockAttempts: LoginAttempt[] = [
-      {
-        id: '1',
-        ip: '192.168.1.100',
-        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-        timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        success: true
-      },
-      {
-        id: '2',
-        ip: '203.0.113.1',
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-        success: false,
-        reason: '密码错误'
+    const loadSecurityData = async () => {
+      try {
+        const response = await fetch('/api/admin/security', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`,
+          },
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          setSettings(data.settings)
+          setLoginAttempts(data.loginAttempts)
+          setLastSaved(new Date())
+        } else {
+          console.error('加载安全设置失败')
+          toast.error('加载安全设置失败')
+        }
+      } catch (error) {
+        console.error('加载安全设置错误:', error)
+        toast.error('加载安全设置失败')
       }
-    ]
-    setLoginAttempts(mockAttempts)
+    }
+    
+    loadSecurityData()
   }, [])
 
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      // 模拟保存延迟
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const response = await fetch('/api/admin/security', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`,
+        },
+        body: JSON.stringify({ settings }),
+      })
       
-      // 保存到本地存储
-      LocalStorage.setItem(STORAGE_KEYS.SECURITY_SETTINGS, settings)
-      const now = new Date()
-      LocalStorage.setItem(STORAGE_KEYS.SECURITY_LAST_SAVED, now.toISOString())
-      setLastSaved(now)
-      
-      toast.success('安全设置已保存')
+      if (response.ok) {
+        const data = await response.json()
+        // 更新本地状态以反映服务器保存的数据
+        if (data.settings) {
+          setSettings(data.settings)
+        }
+        const now = new Date()
+        setLastSaved(now)
+        toast.success('安全设置已保存')
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.error || '保存失败，请重试')
+      }
     } catch (error) {
+      console.error('保存安全设置错误:', error)
       toast.error('保存失败，请重试')
     } finally {
       setIsSaving(false)
@@ -201,7 +208,7 @@ export function SecuritySettings() {
                 id="maxAttempts"
                 type="number"
                 value={settings.maxLoginAttempts}
-                onChange={(e) => handleInputChange('maxLoginAttempts', parseInt(e.target.value))}
+                onChange={(e) => handleInputChange('maxLoginAttempts', parseInt(e.target.value) || 1)}
                 min="1"
                 max="10"
               />
@@ -212,7 +219,7 @@ export function SecuritySettings() {
                 id="lockoutDuration"
                 type="number"
                 value={settings.lockoutDuration}
-                onChange={(e) => handleInputChange('lockoutDuration', parseInt(e.target.value))}
+                onChange={(e) => handleInputChange('lockoutDuration', parseInt(e.target.value) || 1)}
                 min="1"
                 max="1440"
               />
@@ -223,7 +230,7 @@ export function SecuritySettings() {
                 id="sessionTimeout"
                 type="number"
                 value={settings.sessionTimeout}
-                onChange={(e) => handleInputChange('sessionTimeout', parseInt(e.target.value))}
+                onChange={(e) => handleInputChange('sessionTimeout', parseInt(e.target.value) || 5)}
                 min="5"
                 max="1440"
               />
@@ -259,7 +266,7 @@ export function SecuritySettings() {
                 id="minLength"
                 type="number"
                 value={settings.passwordPolicy.minLength}
-                onChange={(e) => handlePasswordPolicyChange('minLength', parseInt(e.target.value))}
+                onChange={(e) => handlePasswordPolicyChange('minLength', parseInt(e.target.value) || 6)}
                 min="6"
                 max="32"
               />
@@ -270,7 +277,7 @@ export function SecuritySettings() {
                 id="maxAge"
                 type="number"
                 value={settings.passwordPolicy.maxAge}
-                onChange={(e) => handlePasswordPolicyChange('maxAge', parseInt(e.target.value))}
+                onChange={(e) => handlePasswordPolicyChange('maxAge', parseInt(e.target.value) || 30)}
                 min="30"
                 max="365"
               />

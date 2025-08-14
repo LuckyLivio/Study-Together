@@ -19,12 +19,14 @@ export interface ChatRequest {
   messages: ChatMessage[];
   userId?: string;
   coupleId?: string;
+  conversationId?: string;
 }
 
 export interface ChatResponse {
   message: ChatMessage;
   success: boolean;
   error?: string;
+  conversationId?: string;
 }
 
 // DeepSeek API request format

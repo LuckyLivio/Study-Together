@@ -9,8 +9,10 @@ import {
   DeepSeekResponse,
   SYSTEM_PROMPTS
 } from '@/lib/ai-config';
+import { PrismaClient } from '@/generated/prisma';
 import jwt from 'jsonwebtoken';
 
+const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // 验证JWT token的辅助函数
@@ -51,13 +53,48 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body: ChatRequest = await request.json();
-    const { messages, userId, coupleId } = body;
+    const { messages, userId, coupleId, conversationId } = body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Messages are required' },
         { status: 400 }
       );
+    }
+
+    // Verify user ID matches authenticated user
+    if (userId && userId !== user.userId) {
+      return NextResponse.json(
+        { success: false, error: 'User ID mismatch' },
+        { status: 403 }
+      );
+    }
+
+    // Get or create conversation
+    let conversation;
+    if (conversationId) {
+      // Verify conversation ownership
+      conversation = await prisma.chatConversation.findFirst({
+        where: {
+          id: conversationId,
+          userId: user.userId
+        }
+      });
+      
+      if (!conversation) {
+        return NextResponse.json(
+          { success: false, error: 'Conversation not found' },
+          { status: 404 }
+        );
+      }
+    } else {
+      // Create new conversation
+      conversation = await prisma.chatConversation.create({
+        data: {
+          title: '新对话',
+          userId: user.userId
+        }
+      });
     }
 
     // Prepare messages for DeepSeek API
@@ -109,16 +146,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Save user message to database (only the latest one)
+    const userMessage = messages[messages.length - 1];
+    const savedUserMessage = await prisma.chatMessage.create({
+      data: {
+        conversationId: conversation.id,
+        userId: user.userId,
+        role: userMessage.role,
+        content: userMessage.content
+      }
+    });
+
+    // Save assistant message to database
+    const assistantContent = deepSeekResponse.choices[0].message.content;
+    const savedAssistantMessage = await prisma.chatMessage.create({
+      data: {
+        conversationId: conversation.id,
+        userId: user.userId,
+        role: 'assistant',
+        content: assistantContent
+      }
+    });
+
+    // Update conversation timestamp
+    await prisma.chatConversation.update({
+      where: {
+        id: conversation.id
+      },
+      data: {
+        updatedAt: new Date()
+      }
+    });
+
     // Create response message
     const assistantMessage = {
-      id: generateMessageId(),
+      id: savedAssistantMessage.id,
       role: 'assistant' as const,
-      content: deepSeekResponse.choices[0].message.content,
-      timestamp: new Date()
+      content: assistantContent,
+      timestamp: savedAssistantMessage.createdAt
     };
 
     const chatResponse: ChatResponse = {
       message: assistantMessage,
+      conversationId: conversation.id,
       success: true
     };
 

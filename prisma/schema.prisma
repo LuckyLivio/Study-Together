@@ -38,6 +38,14 @@ model User {
   coupleId  String?
   couple    Couple?  @relation(fields: [coupleId], references: [id])
   
+  // Security relationships
+  loginAttempts UserLockout?
+  loginHistory  LoginAttempt[]
+  
+  // Chat relationships
+  chatConversations ChatConversation[]
+  chatMessages      ChatMessage[]
+  
   @@map("users")
 }
 
@@ -81,4 +89,90 @@ enum Gender {
   MALE
   FEMALE
   OTHER
+}
+
+model SecuritySettings {
+  id                String   @id @default(cuid())
+  maxLoginAttempts  Int      @default(5)
+  lockoutDuration   Int      @default(15) // 分钟
+  sessionTimeout    Int      @default(60) // 分钟
+  requireTwoFactor  Boolean  @default(false)
+  allowedIPs        String[] @default([])
+  
+  // 密码策略
+  passwordMinLength       Int     @default(8)
+  passwordRequireUppercase Boolean @default(true)
+  passwordRequireLowercase Boolean @default(true)
+  passwordRequireNumbers   Boolean @default(true)
+  passwordRequireSpecialChars Boolean @default(true)
+  passwordMaxAge          Int     @default(90) // 天
+  
+  // 时间戳
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("security_settings")
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  ip        String
+  userAgent String?
+  userId    String?
+  username  String?
+  success   Boolean
+  reason    String?
+  timestamp DateTime @default(now())
+  
+  // 关联用户（如果登录成功）
+  user      User?    @relation(fields: [userId], references: [id])
+  
+  @@map("login_attempts")
+}
+
+model UserLockout {
+  id        String   @id @default(cuid())
+  userId    String?  @unique
+  ip        String   @unique
+  attempts  Int      @default(0)
+  lockedAt  DateTime?
+  unlockAt  DateTime?
+  
+  // 关联用户
+  user      User?    @relation(fields: [userId], references: [id])
+  
+  @@map("user_lockouts")
+}
+
+model ChatConversation {
+  id        String   @id @default(cuid())
+  title     String?  // 对话标题，可选
+  userId    String   // 对话所属用户
+  
+  // 时间戳
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // 关联关系
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+  
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String   @id @default(cuid())
+  conversationId String   // 所属对话
+  userId         String   // 消息所属用户
+  role           String   // 'user' | 'assistant' | 'system'
+  content        String   // 消息内容
+  
+  // 时间戳
+  createdAt      DateTime @default(now())
+  
+  // 关联关系
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("chat_messages")
 }
