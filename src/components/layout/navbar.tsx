@@ -40,7 +40,7 @@ export function Navbar() {
   const handleLogout = () => {
     logout()
     toast.success('已成功退出登录')
-    router.push('/login')
+    router.push('/landing')
   }
   
   return (
@@ -48,7 +48,7 @@ export function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/landing" className="flex items-center space-x-2">
             <Heart className="h-6 w-6 text-pink-500" fill="currentColor" />
             <span className="font-bold text-xl">{isLoading ? siteConfig.name : config.name}</span>
           </Link>

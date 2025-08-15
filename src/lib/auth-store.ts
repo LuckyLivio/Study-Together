@@ -382,13 +382,53 @@ export const useAuthStore = create<AuthStore>()(
         // 从持久化存储中恢复状态时的初始化逻辑
         const { user } = get()
         if (user) {
-          set({ isAuthenticated: true })
-          // 刷新用户状态以获取最新信息
+          // 不直接设置 isAuthenticated，而是通过 API 验证
           try {
-            await get().refreshUserState()
+            const response = await fetch('/api/auth/me', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            })
+            
+            if (response.ok) {
+              const data = await response.json()
+              if (data.user) {
+                const updatedUser: User = {
+                  id: data.user.id,
+                  email: data.user.email,
+                  name: data.user.displayName || data.user.username,
+                  gender: data.user.gender,
+                  role: data.user.role,
+                  isAdmin: data.user.isAdmin || false,
+                  createdAt: data.user.createdAt,
+                  updatedAt: data.user.updatedAt,
+                  coupleId: data.user.coupleId,
+                  partnerId: data.user.partnerId,
+                  partnerName: data.user.partnerName
+                }
+                
+                set({ 
+                  user: updatedUser,
+                  couple: data.couple || null,
+                  isAuthenticated: true
+                })
+              } else {
+                // API 返回无用户信息，清除本地状态
+                set({ user: null, couple: null, isAuthenticated: false })
+              }
+            } else {
+              // API 请求失败，清除本地状态
+              set({ user: null, couple: null, isAuthenticated: false })
+            }
           } catch (error) {
-            console.error('初始化时刷新用户状态失败:', error)
+            console.error('初始化时验证用户状态失败:', error)
+            // 网络错误等情况，清除本地状态
+            set({ user: null, couple: null, isAuthenticated: false })
           }
+        } else {
+          // 没有本地用户数据，确保状态为未认证
+          set({ isAuthenticated: false })
         }
       },
       

@@ -19,7 +19,7 @@ export default function AdminPage() {
   const handleLogout = () => {
     setIsAuthenticated(false)
     setAdminUser(null)
-    router.push('/')
+    router.push('/landing')
   }
 
   // 如果未认证，显示管理员登录界面

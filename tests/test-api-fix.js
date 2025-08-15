@@ -1,4 +1,4 @@
-const { PrismaClient } = require('./src/generated/prisma');
+const { PrismaClient } = require('../src/generated/prisma');
 
 async function testAPIs() {
   console.log('🔧 测试API修复...');
