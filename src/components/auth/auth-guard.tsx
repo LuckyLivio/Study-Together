@@ -61,7 +61,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
     // 如果不是公开路由且未登录，重定向到登录页
     if (!isPublicRoute && !isAuthenticated && !isLoading) {
-      router.push('/login')
+      router.push('/landing')
       return
     }
 
