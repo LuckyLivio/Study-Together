@@ -47,7 +47,7 @@ export default function LandingPage() {
             一个专为情侣设计的共同学习平台，让爱情与知识一起成长 💕
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
+            <Link href="/login">
               <Button size="lg" className="text-lg px-8 py-3">
                 立即开始
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -109,9 +109,9 @@ export default function LandingPage() {
           <p className="text-xl mb-8 opacity-90">
             加入我们，让学习变得更有趣，让爱情更加甜蜜
           </p>
-          <Link href="/">
+          <Link href="/login">
             <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
-              立即注册
+              立即开始
               <Heart className="ml-2 h-5 w-5" />
             </Button>
           </Link>

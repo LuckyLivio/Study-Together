@@ -216,7 +216,7 @@ export default function AboutPage() {
             加入我们，开启属于你们的学习之旅
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/">
+            <Link href="/login">
               <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
                 立即开始
                 <Heart className="ml-2 h-5 w-5" />

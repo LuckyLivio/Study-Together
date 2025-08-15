@@ -12,7 +12,7 @@ export default function Home() {
     if (!isLoading) {
       if (isAuthenticated) {
         // 已登录用户跳转到仪表盘
-        router.push('/couple')
+        router.push('/dashboard')
       } else {
         // 未登录用户跳转到着陆页
         router.push('/landing')

@@ -22,6 +22,7 @@ import {
   Users,
   Bot
 } from 'lucide-react'
+import { WeatherWidget } from './weather-widget'
 
 const navigation = [
   { name: '仪表盘', href: '/', icon: Home },
@@ -76,6 +77,9 @@ export function Navbar() {
           <div className="flex items-center space-x-4">
             {isAuthenticated && user ? (
               <>
+                {/* 天气小组件 */}
+                <WeatherWidget />
+                
                 {/* 情侣状态显示 */}
                 {couple && couple.isComplete && (
                   <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
