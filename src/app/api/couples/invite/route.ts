@@ -69,13 +69,6 @@ export async function POST(request: NextRequest) {
     // 检查用户是否已经有情侣
     let existingCouple = await getCoupleByUserId(user.id)
     
-    if (existingCouple && existingCouple.isComplete) {
-      return NextResponse.json(
-        { error: '您已经有情侣伴侣了' },
-        { status: 400 }
-      )
-    }
-    
     // 如果已经有未完成的情侣记录，返回现有的邀请码
     if (existingCouple && !existingCouple.isComplete) {
       return NextResponse.json({
@@ -83,6 +76,29 @@ export async function POST(request: NextRequest) {
         couple: existingCouple,
         message: '邀请码已存在'
       })
+    }
+    
+    // 如果已经有完成的情侣关系，先解除现有关系，然后创建新的邀请
+    if (existingCouple && existingCouple.isComplete) {
+      // 删除现有的情侣记录
+      await prisma.couple.delete({
+        where: { id: existingCouple.id }
+      })
+      
+      // 清除用户的情侣关联
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { coupleId: null }
+      })
+      
+      // 如果有伴侣，也清除伴侣的情侣关联
+      const partnerId = existingCouple.person1Id === user.id ? existingCouple.person2Id : existingCouple.person1Id
+      if (partnerId) {
+        await prisma.user.update({
+          where: { id: partnerId },
+          data: { coupleId: null }
+        })
+      }
     }
     
     // 创建新的情侣记录
