@@ -12,24 +12,26 @@ import { Plus, BookOpen, Clock, Target, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 import StudyPlanCard from './study-plan-card'
 import CountdownTimer from './countdown-timer'
+import PomodoroTimer from './pomodoro-timer'
+import DailyCheckin from './daily-checkin'
+import StudyProgressSync from './study-progress-sync'
+import DDayCountdown from './dday-countdown'
 
 interface StudyTask {
   id: string
   title: string
   description?: string
-  type: 'STUDY' | 'BREAK' | 'REVIEW' | 'EXERCISE'
-  duration: number // 分钟
+  taskType: 'CHECKIN' | 'POMODORO' | 'READING' | 'EXERCISE' | 'REVIEW' | 'OTHER'
+  duration?: number
   isCompleted: boolean
-  completedAt?: Date
-  createdAt: Date
-  updatedAt: Date
+  completedAt?: string
 }
 
 interface StudyPlan {
   id: string
   title: string
   description?: string
-  planDate: Date
+  planDate: string
   tasks: StudyTask[]
   isCompleted: boolean
   createdAt: Date
@@ -55,7 +57,7 @@ export default function StudyTaskManager() {
     title: '',
     description: '',
     planDate: new Date().toISOString().split('T')[0],
-    tasks: [] as Omit<StudyTask, 'id' | 'createdAt' | 'updatedAt'>[]
+    tasks: [] as Omit<StudyTask, 'id' | 'completedAt'>[]
   })
 
   // 获取学习计划
@@ -211,7 +213,7 @@ export default function StudyTaskManager() {
   const addTaskToPlan = () => {
     const newTask = {
       title: '新任务',
-      type: 'STUDY' as const,
+      taskType: 'READING' as const,
       duration: 25,
       isCompleted: false
     }
@@ -253,10 +255,18 @@ export default function StudyTaskManager() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="plans" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="plans" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
             学习计划
+          </TabsTrigger>
+          <TabsTrigger value="pomodoro" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            番茄时间
+          </TabsTrigger>
+          <TabsTrigger value="checkin" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            每日打卡
           </TabsTrigger>
           <TabsTrigger value="goals" className="flex items-center gap-2">
             <Target className="h-4 w-4" />
@@ -347,14 +357,16 @@ export default function StudyTaskManager() {
                         <div>
                           <Label>任务类型</Label>
                           <select
-                            value={task.type}
-                            onChange={(e) => updatePlanTask(index, 'type', e.target.value)}
+                            value={task.taskType}
+                            onChange={(e) => updatePlanTask(index, 'taskType', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
-                            <option value="STUDY">学习</option>
-                            <option value="BREAK">休息</option>
-                            <option value="REVIEW">复习</option>
+                            <option value="READING">阅读</option>
                             <option value="EXERCISE">练习</option>
+                            <option value="REVIEW">复习</option>
+                            <option value="POMODORO">番茄时间</option>
+                            <option value="CHECKIN">打卡</option>
+                            <option value="OTHER">其他</option>
                           </select>
                         </div>
                         <div className="flex gap-2">
@@ -439,12 +451,55 @@ export default function StudyTaskManager() {
           )}
         </TabsContent>
 
+        <TabsContent value="pomodoro" className="space-y-4">
+          <PomodoroTimer />
+        </TabsContent>
+        
+        <TabsContent value="checkin" className="space-y-4">
+          <DailyCheckin />
+          <StudyProgressSync onSync={() => {
+            // 同步完成后刷新数据
+            fetchStudyPlans()
+            fetchStudyGoals()
+          }} />
+        </TabsContent>
+        
         <TabsContent value="goals">
-          <CountdownTimer
-            goals={studyGoals}
-            onGoalCreate={handleCreateGoal}
-            onGoalUpdate={handleUpdateGoal}
+          <DDayCountdown
+            goals={studyGoals.map(goal => ({
+              ...goal,
+              examType: 'OTHER' as const,
+              studyStartDate: new Date(goal.createdAt),
+              totalStudyDays: Math.ceil((new Date(goal.targetDate).getTime() - new Date(goal.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
+              currentProgress: 0
+            }))}
+            onGoalCreate={(data) => {
+              const goalData = {
+                title: data.title,
+                description: data.description,
+                targetDate: data.targetDate,
+                isActive: data.isActive
+              }
+              handleCreateGoal(goalData)
+            }}
+            onGoalUpdate={(goalId, data) => {
+              const updateData: any = {}
+              if (data.isActive !== undefined) updateData.isActive = data.isActive
+              if (data.title) updateData.title = data.title
+              if (data.description !== undefined) updateData.description = data.description
+              if (data.targetDate) updateData.targetDate = data.targetDate
+              handleUpdateGoal(goalId, updateData)
+            }}
           />
+          
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-4">简单目标倒计时</h3>
+            <CountdownTimer
+              goals={studyGoals}
+              onGoalCreate={handleCreateGoal}
+              onGoalUpdate={handleUpdateGoal}
+            />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

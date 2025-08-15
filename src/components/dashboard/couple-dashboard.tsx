@@ -1,342 +1,480 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { siteConfig } from '@/lib/config'
-import { useSiteConfig } from '@/lib/use-site-config'
+import { Progress } from '@/components/ui/progress'
+import { Heart, BookOpen, Clock, Target, Calendar, User, Users, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth-store'
-import { useUserStore, useTaskStore, useCountdownStore } from '@/lib/store'
-import { useTheme } from '@/lib/use-theme'
-import { getThemeVariables } from '@/lib/theme'
-import { Heart, Calendar, Target, BookOpen, Clock, Users, Plus } from 'lucide-react'
-import Link from 'next/link'
+// 简单的倒计时显示组件
+function SimpleCountdown({ targetDate }: { targetDate: Date }) {
+  const [timeLeft, setTimeLeft] = useState('')
 
-// 个人仪表盘组件
-interface PersonDashboardProps {
-  person: 'person1' | 'person2'
-  name: string
-  color: string
-}
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date().getTime()
+      const target = new Date(targetDate).getTime()
+      const difference = target - now
 
-function PersonDashboard({ person, name, color }: PersonDashboardProps) {
-  const { tasks } = useTaskStore()
-  const { targets } = useCountdownStore()
-  
-  // 模拟数据
-  const todayTasks = tasks.filter(task => 
-    new Date(task.date).toDateString() === new Date().toDateString()
-  )
-  const completedTasks = todayTasks.filter(task => task.completed)
-  const mainTarget = targets[0] // 主要目标
-  
-  const getDaysUntilTarget = (targetDate: Date) => {
-    const now = new Date()
-    const target = new Date(targetDate)
-    const diffTime = target.getTime() - now.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
-  }
+      if (difference > 0) {
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24))
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60))
+        
+        if (days > 0) {
+          setTimeLeft(`${days}天 ${hours}小时`)
+        } else if (hours > 0) {
+          setTimeLeft(`${hours}小时 ${minutes}分钟`)
+        } else {
+          setTimeLeft(`${minutes}分钟`)
+        }
+      } else {
+        setTimeLeft('已到期')
+      }
+    }
+
+    updateCountdown()
+    const interval = setInterval(updateCountdown, 60000) // 每分钟更新一次
+
+    return () => clearInterval(interval)
+  }, [targetDate])
 
   return (
-    <div className="space-y-6">
-      {/* 个人信息卡片 */}
-      <Card className="border-2" style={{ borderColor: color }}>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2" style={{ color }}>
-            <Heart className="h-5 w-5" fill={color} />
-            {name}的学习仪表盘
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-muted-foreground">
-            今天是 {new Date().toLocaleDateString('zh-CN', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric',
-              weekday: 'long'
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 今日任务进度 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            今日任务进度
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm">完成进度</span>
-              <span className="text-sm font-medium">
-                {completedTasks.length}/{todayTasks.length}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="h-2 rounded-full transition-all duration-300"
-                style={{ 
-                  backgroundColor: color,
-                  width: `${todayTasks.length > 0 ? (completedTasks.length / todayTasks.length) * 100 : 0}%`
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              {todayTasks.length === 0 ? (
-                <p className="text-sm text-muted-foreground">今天还没有安排任务</p>
-              ) : (
-                todayTasks.slice(0, 3).map((task, index) => (
-                  <div key={index} className="flex items-center gap-2 text-sm">
-                    <div 
-                      className={`w-2 h-2 rounded-full ${
-                        task.completed ? 'bg-green-500' : 'bg-gray-300'
-                      }`}
-                    />
-                    <span className={task.completed ? 'line-through text-muted-foreground' : ''}>
-                      {task.title}
-                    </span>
-                  </div>
-                ))
-              )}
-              {todayTasks.length > 3 && (
-                <p className="text-xs text-muted-foreground">
-                  还有 {todayTasks.length - 3} 个任务...
-                </p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 考试倒计时 */}
-      {mainTarget && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              考试倒计时
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center space-y-2">
-              <h3 className="font-medium">{mainTarget.title}</h3>
-              <div className="text-3xl font-bold" style={{ color }}>
-                D-{getDaysUntilTarget(mainTarget.targetDate)}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {new Date(mainTarget.targetDate).toLocaleDateString('zh-CN')}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 今日课程 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            今日课程
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">暂无课程安排</p>
-            <Button variant="outline" size="sm" className="w-full">
-              查看完整课表
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 番茄时钟 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            番茄时钟
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center space-y-3">
-            <div className="text-2xl font-mono">25:00</div>
-            <div className="flex gap-2">
-              <Button size="sm" style={{ backgroundColor: color, color: 'white' }}>
-                开始
-              </Button>
-              <Button variant="outline" size="sm">
-                暂停
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="text-2xl font-bold text-orange-600">
+      {timeLeft}
     </div>
   )
 }
 
-// 主仪表盘组件
-export function CoupleDashboard() {
-  const { user, partner } = useUserStore()
-  const { config, isLoading } = useSiteConfig()
-  const siteName = config?.name || 'Study Together'
-  const { user: authUser, couple } = useAuthStore()
-  const { theme } = useTheme()
-  
-  // 获取实际的颜色值
-  const themeColors = getThemeVariables(authUser?.gender || 'female')
-  const primaryColor = themeColors['--theme-primary']
-  
-  if (isLoading) {
+interface DashboardData {
+  todayTasks: number
+  completedTasks: number
+  studyTime: number
+  goalProgress: number
+  upcomingDeadline?: {
+    title: string
+    date: Date
+  }
+  currentPlan?: {
+    title: string
+    progress: number
+  }
+}
+
+interface CoupleData {
+  user: DashboardData
+  partner?: DashboardData
+}
+
+interface UserInfo {
+  id: string
+  username: string
+  displayName?: string
+  coupleId?: string
+  partnerId?: string
+  partnerName?: string
+}
+
+interface CoupleInfo {
+  id: string
+  isComplete: boolean
+  inviteCode?: string
+}
+
+export default function CoupleDashboard() {
+  const { user } = useAuthStore()
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
+  const [coupleInfo, setCoupleInfo] = useState<CoupleInfo | null>(null)
+  const [coupleData, setCoupleData] = useState<CoupleData>({
+    user: {
+      todayTasks: 0,
+      completedTasks: 0,
+      studyTime: 0,
+      goalProgress: 0
+    }
+  })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // 获取用户和情侣信息
+  const fetchUserInfo = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include'
+      })
+      
+      if (!response.ok) {
+        throw new Error('获取用户信息失败')
+      }
+      
+      const data = await response.json()
+      setUserInfo(data.user)
+      setCoupleInfo(data.couple)
+      
+      // 如果有完整的情侣关系，加载学习数据
+      if (data.couple?.isComplete) {
+        await loadCoupleStudyData(data.user, data.couple)
+      } else {
+        // 只加载个人数据
+        await loadPersonalStudyData(data.user)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '加载失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 加载个人学习数据
+  const loadPersonalStudyData = async (user: UserInfo) => {
+    // 这里将来会从API获取真实的学习数据
+    // 现在使用模拟数据
+    setCoupleData({
+      user: {
+        todayTasks: 5,
+        completedTasks: 3,
+        studyTime: 120,
+        goalProgress: 65,
+        upcomingDeadline: {
+          title: '数学期末考试',
+          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        },
+        currentPlan: {
+          title: '高等数学复习计划',
+          progress: 45
+        }
+      }
+    })
+  }
+
+  // 加载情侣学习数据
+  const loadCoupleStudyData = async (user: UserInfo, couple: CoupleInfo) => {
+    // 这里将来会从API获取真实的情侣学习数据
+    // 现在使用模拟数据
+    setCoupleData({
+      user: {
+        todayTasks: 5,
+        completedTasks: 3,
+        studyTime: 120,
+        goalProgress: 65,
+        upcomingDeadline: {
+          title: '数学期末考试',
+          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        },
+        currentPlan: {
+          title: '高等数学复习计划',
+          progress: 45
+        }
+      },
+      partner: {
+        todayTasks: 4,
+        completedTasks: 4,
+        studyTime: 180,
+        goalProgress: 80,
+        upcomingDeadline: {
+          title: '英语四级考试',
+          date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+        },
+        currentPlan: {
+          title: '英语词汇强化训练',
+          progress: 72
+        }
+      }
+    })
+  }
+
+  // 初始加载和定时刷新
+  useEffect(() => {
+    fetchUserInfo()
+    
+    // 设置定时刷新（每30秒）
+    const interval = setInterval(fetchUserInfo, 30000)
+    
+    return () => clearInterval(interval)
+  }, [])
+
+  const formatTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
+  }
+
+  const formatDate = (date: Date) => {
+    const now = new Date()
+    const diffTime = date.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) return '今天'
+    if (diffDays === 1) return '明天'
+    if (diffDays < 7) return `${diffDays}天后`
+    return date.toLocaleDateString('zh-CN')
+  }
+
+  const PersonCard = ({ data, title, icon }: { data: DashboardData, title: string, icon: React.ReactNode }) => (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-6">
+        {icon}
+        <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+      </div>
+
+      {/* 今日任务概览 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <BookOpen className="h-5 w-5" />
+            今日任务
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm text-gray-600">完成进度</span>
+            <span className="text-sm font-medium">{data.completedTasks}/{data.todayTasks}</span>
+          </div>
+          <Progress value={(data.completedTasks / data.todayTasks) * 100} className="mb-3" />
+          <div className="flex gap-2">
+            <Badge variant={data.completedTasks === data.todayTasks ? "default" : "secondary"}>
+              {data.completedTasks === data.todayTasks ? '已完成' : '进行中'}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 学习时长 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Clock className="h-5 w-5" />
+            学习时长
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-600 mb-2">{formatTime(data.studyTime)}</div>
+            <p className="text-gray-500">今日累计</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 目标进度 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Target className="h-5 w-5" />
+            目标进度
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.currentPlan ? (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-gray-600">{data.currentPlan.title}</span>
+                <span className="text-sm font-medium">{data.currentPlan.progress}%</span>
+              </div>
+              <Progress value={data.currentPlan.progress} className="mb-3" />
+              <Badge variant="outline">{data.goalProgress}% 总体完成度</Badge>
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-gray-500">暂无活动计划</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 倒计时 */}
+      {data.upcomingDeadline && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Calendar className="h-5 w-5" />
+              重要倒计时
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center">
+              <h3 className="font-medium mb-2">{data.upcomingDeadline.title}</h3>
+              <SimpleCountdown targetDate={data.upcomingDeadline.date} />
+              <p className="text-sm text-gray-500 mt-2">{formatDate(data.upcomingDeadline.date)}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+
+  // 加载状态
+  if (loading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">加载中...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-pink-600" />
+          <p className="text-gray-600">加载中...</p>
         </div>
       </div>
     )
   }
-  
-  return (
-    <div className="container mx-auto p-6">
-      {/* 页面标题 */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2">{config.name}</h1>
-        <p className="text-muted-foreground">{config.description}</p>
-        
-        {/* 情侣状态显示 */}
-        {authUser && (
-          <div className="mt-4 flex justify-center">
-            {couple && couple.isComplete ? (
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                <Users className="h-3 w-3 mr-1" />
-                {couple.person1Name} & {couple.person2Name}
-              </Badge>
-            ) : couple && !couple.isComplete ? (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                  等待伴侣加入
-                </Badge>
-                <Link href="/couple">
-                  <Button variant="outline" size="sm">
-                    管理邀请
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="bg-gray-100 text-gray-800">
-                  未配对
-                </Badge>
-                <Link href="/couple">
-                  <Button variant="outline" size="sm">
-                    <Plus className="h-3 w-3 mr-1" />
-                    创建或加入情侣
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
-      {/* 双栏布局 */}
-      {couple && couple.isComplete ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 左栏 - 我 */}
-          <div>
-            <PersonDashboard 
-              person={(authUser?.role === 'person1' || authUser?.role === 'person2') ? authUser.role : "person1"}
-              name={authUser?.role === 'person1' ? couple.person1Name || authUser?.name || '用户' : couple.person2Name || authUser?.name || '用户'}
-              color={primaryColor}
-            />
-          </div>
-          
-          {/* 右栏 - Ta */}
-          <div>
-            <PersonDashboard 
-              person={authUser?.role === 'person1' ? "person2" : "person1"}
-              name={authUser?.role === 'person1' ? couple.person2Name || 'Ta' : couple.person1Name || 'Ta'}
-              color={authUser?.role === 'person1' ? config.couple.person2.color : config.couple.person1.color}
-            />
-          </div>
+  // 错误状态
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="text-center py-8">
+            <div className="text-red-500 mb-4">⚠️</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">加载失败</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button 
+              onClick={fetchUserInfo}
+              className="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors"
+            >
+              重试
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // 获取显示名称
+  const getDisplayName = (info: UserInfo | null) => {
+    if (!info) return '我'
+    return info.displayName || info.username || '我'
+  }
+
+  const getPartnerName = () => {
+    if (userInfo?.partnerName) return userInfo.partnerName
+    return '伴侣'
+  }
+
+  // 检查是否有完整的情侣关系
+  const hasCompleteCouple = coupleInfo?.isComplete && coupleData.partner
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 页面标题 */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-3">
+            <Heart className="h-8 w-8 text-pink-600" />
+            {hasCompleteCouple ? '情侣学习仪表盘' : '个人学习仪表盘'}
+          </h1>
+          <p className="text-gray-600">
+            {hasCompleteCouple ? '一起学习，共同进步' : '开始你的学习之旅'}
+          </p>
+          {userInfo?.coupleId && !coupleInfo?.isComplete && (
+            <Badge variant="outline" className="mt-2">
+              等待伴侣加入情侣关系
+            </Badge>
+          )}
         </div>
-      ) : (
-        /* 单人模式或未配对状态 */
-        <div className="max-w-2xl mx-auto">
-          <PersonDashboard 
-            person={(authUser?.role === 'person1' || authUser?.role === 'person2') ? authUser.role : "person1"}
-            name={authUser?.name || config.couple.person1.name}
-            color={primaryColor}
+
+        {/* 双栏布局 */}
+        <div className={`grid gap-8 ${hasCompleteCouple ? 'lg:grid-cols-2' : 'max-w-2xl mx-auto'}`}>
+          {/* 左栏：我 */}
+          <PersonCard 
+            data={coupleData.user} 
+            title={getDisplayName(userInfo)}
+            icon={<User className="h-6 w-6 text-blue-600" />}
           />
-          
-          {/* 邀请伴侣卡片 */}
+
+          {/* 右栏：她/他 */}
+          {hasCompleteCouple ? (
+            <PersonCard 
+              data={coupleData.partner!} 
+              title={getPartnerName()}
+              icon={<Heart className="h-6 w-6 text-pink-600" />}
+            />
+          ) : (
+            // 只有在双栏布局时才显示等待伴侣的卡片
+            hasCompleteCouple === false && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <Users className="h-6 w-6 text-gray-400" />
+                  <h2 className="text-2xl font-bold text-gray-400">等待伴侣</h2>
+                </div>
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-500 mb-2">还没有学习伴侣</h3>
+                    <p className="text-gray-400 mb-4">邀请你的伴侣一起加入学习之旅</p>
+                    <Badge variant="outline">前往情侣空间绑定伴侣</Badge>
+                  </CardContent>
+                </Card>
+              </div>
+            )
+          )}
+        </div>
+
+        {/* 底部统计对比 - 只在有完整情侣关系时显示 */}
+        {hasCompleteCouple && (
           <Card className="mt-8">
             <CardHeader>
               <CardTitle className="text-center flex items-center justify-center gap-2">
-                <Heart className="h-5 w-5 text-pink-500" />
-                邀请您的学习伴侣
+                <Target className="h-5 w-5" />
+                学习对比
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center space-y-4">
-                <p className="text-muted-foreground">
-                  {couple && !couple.isComplete 
-                    ? '您已创建情侣空间，请邀请您的伴侣加入一起学习！'
-                    : '创建情侣学习空间，与您的伴侣一起制定学习计划、互相监督进度。'
-                  }
-                </p>
-                <Link href="/couple">
-                  <Button className="bg-pink-600 hover:bg-pink-700">
-                    <Users className="h-4 w-4 mr-2" />
-                    {couple && !couple.isComplete ? '管理邀请' : '开始配对'}
-                  </Button>
-                </Link>
+              <div className="grid md:grid-cols-3 gap-6 text-center">
+                <div>
+                  <h4 className="font-medium mb-2">今日任务完成</h4>
+                  <div className="flex justify-center gap-4">
+                    <div>
+                      <div className="text-2xl font-bold text-blue-600">{coupleData.user.completedTasks}</div>
+                      <div className="text-sm text-gray-500">{getDisplayName(userInfo)}</div>
+                    </div>
+                    <div className="text-gray-300">vs</div>
+                    <div>
+                      <div className="text-2xl font-bold text-pink-600">{coupleData.partner!.completedTasks}</div>
+                      <div className="text-sm text-gray-500">{getPartnerName()}</div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">学习时长</h4>
+                  <div className="flex justify-center gap-4">
+                    <div>
+                      <div className="text-2xl font-bold text-blue-600">{formatTime(coupleData.user.studyTime)}</div>
+                      <div className="text-sm text-gray-500">{getDisplayName(userInfo)}</div>
+                    </div>
+                    <div className="text-gray-300">vs</div>
+                    <div>
+                      <div className="text-2xl font-bold text-pink-600">{formatTime(coupleData.partner!.studyTime)}</div>
+                      <div className="text-sm text-gray-500">{getPartnerName()}</div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">目标进度</h4>
+                  <div className="flex justify-center gap-4">
+                    <div>
+                      <div className="text-2xl font-bold text-blue-600">{coupleData.user.goalProgress}%</div>
+                      <div className="text-sm text-gray-500">{getDisplayName(userInfo)}</div>
+                    </div>
+                    <div className="text-gray-300">vs</div>
+                    <div>
+                      <div className="text-2xl font-bold text-pink-600">{coupleData.partner!.goalProgress}%</div>
+                      <div className="text-sm text-gray-500">{getPartnerName()}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
-        </div>
-      )}
+        )}
 
-      {/* 底部共享区域 */}
-      <div className="mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center">学习功能</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center space-y-4">
-              <p className="text-muted-foreground">
-                {couple && couple.isComplete 
-                  ? '与您的伴侣一起使用这些学习功能'
-                  : '探索我们的学习功能，提升学习效率'
-                }
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button variant="outline" className="h-20 flex-col" disabled>
-                  <Heart className="h-6 w-6 mb-2" />
-                  <span>情侣打卡</span>
-                  <span className="text-xs text-muted-foreground">开发中</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex-col" disabled>
-                  <Target className="h-6 w-6 mb-2" />
-                  <span>共同目标</span>
-                  <span className="text-xs text-muted-foreground">开发中</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex-col" disabled>
-                  <BookOpen className="h-6 w-6 mb-2" />
-                  <span>学习记录</span>
-                  <span className="text-xs text-muted-foreground">开发中</span>
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* 未绑定情侣时的提示 */}
+        {!userInfo?.coupleId && (
+          <Card className="mt-8">
+            <CardContent className="text-center py-8">
+              <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">开启情侣学习模式</h3>
+              <p className="text-gray-600 mb-4">绑定学习伴侣，一起制定目标，互相监督，共同进步</p>
+              <Badge variant="outline">前往情侣空间开始绑定</Badge>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )
