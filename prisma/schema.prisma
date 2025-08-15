@@ -46,6 +46,10 @@ model User {
   chatConversations ChatConversation[]
   chatMessages      ChatMessage[]
   
+  // Study relationships
+  studyGoals        StudyGoal[]
+  studyPlans        StudyPlan[]
+  
   @@map("users")
 }
 
@@ -187,4 +191,73 @@ model SiteSettings {
   updatedAt DateTime @updatedAt
   
   @@map("site_settings")
+}
+
+// 学习目标模型
+model StudyGoal {
+  id          String    @id @default(cuid())
+  userId      String    // 目标所属用户
+  title       String    // 目标标题，如"考研", "考公", "托福"
+  description String?   // 目标描述
+  targetDate  DateTime  // 目标日期
+  isActive    Boolean   @default(true)
+  
+  // 时间戳
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 关联关系
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("study_goals")
+}
+
+// 学习计划模型
+model StudyPlan {
+  id          String    @id @default(cuid())
+  userId      String    // 计划所属用户
+  title       String    // 计划标题
+  description String?   // 计划描述
+  planDate    DateTime  // 计划日期
+  isCompleted Boolean   @default(false)
+  
+  // 时间戳
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 关联关系
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks       StudyTask[]
+  
+  @@map("study_plans")
+}
+
+// 学习任务模型
+model StudyTask {
+  id          String     @id @default(cuid())
+  planId      String     // 所属计划
+  title       String     // 任务标题
+  description String?    // 任务描述
+  taskType    TaskType   // 任务类型
+  duration    Int?       // 持续时间（分钟）
+  isCompleted Boolean    @default(false)
+  completedAt DateTime?  // 完成时间
+  
+  // 时间戳
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  // 关联关系
+  plan        StudyPlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  
+  @@map("study_tasks")
+}
+
+enum TaskType {
+  CHECKIN     // 打卡
+  POMODORO    // 番茄时间
+  READING     // 阅读
+  EXERCISE    // 练习
+  REVIEW      // 复习
+  OTHER       // 其他
 }
