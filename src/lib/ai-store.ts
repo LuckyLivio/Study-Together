@@ -264,7 +264,10 @@ export const useAIStore = create<AIStore>()(
       name: 'ai-store',
       partialize: (state: AIStore) => ({
         isAIEnabled: state.isAIEnabled,
-        maxMessages: state.maxMessages
+        maxMessages: state.maxMessages,
+        messages: state.messages,
+        currentConversationId: state.currentConversationId,
+        conversations: state.conversations
       })
     }
   )

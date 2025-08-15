@@ -10,6 +10,8 @@ import { Send, Bot, User, Loader2, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/lib/auth-store';
 import { useAIStore } from '@/lib/ai-store';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function AIAssistantPage() {
   const { user, isAuthenticated } = useAuthStore();
@@ -42,12 +44,20 @@ export default function AIAssistantPage() {
   // 初始化欢迎消息
   useEffect(() => {
     if (isAuthenticated && messages.length === 0) {
-      addMessage({
-        role: 'assistant',
-        content: `你好${user?.name ? `, ${user.name}` : ''}！我是你的AI学习助手。我可以帮助你：\n\n📚 制定学习计划\n💡 解答学习问题\n🎯 提供学习建议\n💪 给予学习动力\n👫 情侣学习指导\n\n有什么我可以帮助你的吗？`
-      });
+      // 使用setTimeout确保在下一个事件循环中执行，避免与clearMessages的竞态条件
+      const timer = setTimeout(() => {
+        // 再次检查消息长度，确保没有其他地方添加了消息
+        if (messages.length === 0) {
+          addMessage({
+            role: 'assistant',
+            content: `你好${user?.name ? `, ${user.name}` : ''}！我是你的AI学习助手。我可以帮助你：\n\n📚 制定学习计划\n💡 解答学习问题\n🎯 提供学习建议\n💪 给予学习动力\n👫 情侣学习指导\n\n有什么我可以帮助你的吗？`
+          });
+        }
+      }, 0);
+      
+      return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, user, messages.length, addMessage]);
+  }, [isAuthenticated, user?.name, messages.length, addMessage]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
@@ -72,11 +82,7 @@ export default function AIAssistantPage() {
 
   const handleClearChat = () => {
     clearMessages();
-    // 重新添加欢迎消息
-    addMessage({
-      role: 'assistant',
-      content: `聊天记录已清空。有什么新的问题我可以帮助你吗？`
-    });
+    // 清空后，初始化useEffect会自动添加欢迎消息
   };
 
   if (!isAuthenticated) {
@@ -150,8 +156,42 @@ export default function AIAssistantPage() {
                           : 'bg-gray-100 text-gray-900'
                       }`}
                     >
-                      <div className="whitespace-pre-wrap break-words">
-                        {message.content}
+                      <div className="break-words">
+                        {message.role === 'assistant' ? (
+                          <div className="prose prose-sm max-w-none">
+                            <ReactMarkdown 
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                code: ({ children }) => (
+                                  <code className="bg-gray-200 text-gray-800 px-1 py-0.5 rounded text-sm">
+                                    {children}
+                                  </code>
+                                ),
+                                pre: ({ children }) => (
+                                  <pre className="bg-gray-800 text-gray-100 p-3 rounded-lg overflow-x-auto my-2">
+                                    {children}
+                                  </pre>
+                                ),
+                                ul: ({ children }) => <ul className="list-disc list-inside mb-2">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal list-inside mb-2">{children}</ol>,
+                                li: ({ children }) => <li className="mb-1">{children}</li>,
+                                h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+                                h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
+                                h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
+                                blockquote: ({ children }) => (
+                                  <blockquote className="border-l-4 border-gray-300 pl-3 italic my-2">
+                                    {children}
+                                  </blockquote>
+                                ),
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+                          </div>
+                        ) : (
+                          <div className="whitespace-pre-wrap">{message.content}</div>
+                        )}
                       </div>
                       <div
                         className={`text-xs mt-1 opacity-70 ${
