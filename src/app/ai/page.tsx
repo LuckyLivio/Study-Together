@@ -94,7 +94,7 @@ export default function AIAssistantPage() {
               <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
               <h2 className="text-xl font-semibold mb-2">需要登录</h2>
               <p className="text-gray-600 mb-4">请先登录以使用AI学习助手功能</p>
-              <Button onClick={() => window.location.href = '/login'}>
+              <Button onClick={() => window.location.href = '/landing'}>
                 前往登录
               </Button>
             </div>

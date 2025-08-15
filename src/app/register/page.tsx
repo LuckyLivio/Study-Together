@@ -95,7 +95,7 @@ export default function RegisterPage() {
       } else {
         toast.success('注册成功！正在跳转到主页...')
         setTimeout(() => {
-          router.push('/login')
+          router.push('/landing')
         }, 1500)
       }
     } else {

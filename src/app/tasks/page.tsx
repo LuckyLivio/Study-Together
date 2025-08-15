@@ -11,7 +11,7 @@ export default function TasksPage() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push('/auth/login')
+      router.push('/landing')
     }
   }, [isAuthenticated, router])
 
