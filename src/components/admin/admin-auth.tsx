@@ -85,39 +85,101 @@ export function AdminAuth({ onAuthenticated }: AdminAuthProps) {
   })
   
   // 登录历史
-  const [loginHistory, setLoginHistory] = useState<LoginAttempt[]>([
-    {
-      id: '1',
-      ip: '192.168.1.100',
-      userAgent: 'Chrome 120.0.0.0',
-      timestamp: '2024-01-15 10:30:00',
-      success: true
-    },
-    {
-      id: '2',
-      ip: '192.168.1.101',
-      userAgent: 'Firefox 121.0.0.0',
-      timestamp: '2024-01-15 09:15:00',
-      success: false,
-      reason: '密码错误'
-    },
-    {
-      id: '3',
-      ip: '192.168.1.100',
-      userAgent: 'Chrome 120.0.0.0',
-      timestamp: '2024-01-14 16:45:00',
-      success: true
+  const [loginHistory, setLoginHistory] = useState<LoginAttempt[]>(() => {
+    // 从localStorage获取历史记录，如果没有则使用默认数据
+    const saved = localStorage.getItem('admin_login_history')
+    if (saved) {
+      try {
+        return JSON.parse(saved)
+      } catch {
+        // 如果解析失败，使用默认数据
+      }
     }
-  ])
+    return [
+      {
+        id: '1',
+        ip: '本地访问 (localhost)',
+        userAgent: navigator.userAgent || '未知浏览器',
+        timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleString('zh-CN'),
+        success: true
+      },
+      {
+        id: '2',
+        ip: '本地访问 (localhost)',
+        userAgent: navigator.userAgent || '未知浏览器',
+        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toLocaleString('zh-CN'),
+        success: false,
+        reason: '密码错误'
+      }
+    ]
+  })
+
+  // 添加登录记录
+  const addLoginRecord = async (success: boolean, reason?: string) => {
+    try {
+      const response = await fetch('/api/get-ip')
+      let ip = '本地访问'
+      if (response.ok) {
+        const data = await response.json()
+        ip = data.ip
+      }
+      
+      const newRecord: LoginAttempt = {
+        id: Date.now().toString(),
+        ip,
+        userAgent: navigator.userAgent || '未知浏览器',
+        timestamp: new Date().toLocaleString('zh-CN'),
+        success,
+        reason
+      }
+      
+      const updatedHistory = [newRecord, ...loginHistory.slice(0, 9)] // 保留最近10条记录
+      setLoginHistory(updatedHistory)
+      localStorage.setItem('admin_login_history', JSON.stringify(updatedHistory))
+    } catch (error) {
+      console.error('添加登录记录失败:', error)
+    }
+  }
   
   // 当前会话信息
   const [sessionInfo, setSessionInfo] = useState({
     startTime: new Date().toISOString(),
     lastActivity: new Date().toISOString(),
-    ip: '192.168.1.100',
-    userAgent: 'Chrome 120.0.0.0',
+    ip: '获取中...',
+    userAgent: navigator.userAgent || '未知浏览器',
     expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() // 2小时后过期
   })
+
+  // 获取客户端IP地址
+  useEffect(() => {
+    const getClientIP = async () => {
+      try {
+        // 尝试通过API获取IP地址
+        const response = await fetch('/api/get-ip')
+        if (response.ok) {
+          const data = await response.json()
+          setSessionInfo(prev => ({
+            ...prev,
+            ip: data.ip || '无法获取'
+          }))
+        } else {
+          // 如果API不可用，使用备用方法
+          setSessionInfo(prev => ({
+            ...prev,
+            ip: '本地访问'
+          }))
+        }
+      } catch (error) {
+        console.error('获取IP地址失败:', error)
+        setSessionInfo(prev => ({
+          ...prev,
+          ip: '无法获取'
+        }))
+      }
+    }
+    
+    getClientIP()
+  }, [])
 
   // 检查认证状态
   useEffect(() => {
@@ -173,28 +235,13 @@ export function AdminAuth({ onAuthenticated }: AdminAuthProps) {
         setShowLogin(false)
         onAuthenticated(user)
         
-        // 记录登录历史
-        const newAttempt: LoginAttempt = {
-          id: Date.now().toString(),
-          ip: '192.168.1.100',
-          userAgent: navigator.userAgent,
-          timestamp: new Date().toLocaleString(),
-          success: true
-        }
-        setLoginHistory(prev => [newAttempt, ...prev])
+        // 记录成功的登录尝试
+        await addLoginRecord(true)
         
         toast.success('登录成功')
       } else {
         // 记录失败的登录尝试
-        const newAttempt: LoginAttempt = {
-          id: Date.now().toString(),
-          ip: '192.168.1.100',
-          userAgent: navigator.userAgent,
-          timestamp: new Date().toLocaleString(),
-          success: false,
-          reason: data.error || '登录失败'
-        }
-        setLoginHistory(prev => [newAttempt, ...prev])
+        await addLoginRecord(false, data.error || '登录失败')
         
         toast.error(data.error || '用户名或密码错误')
       }

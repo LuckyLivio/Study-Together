@@ -83,6 +83,12 @@ export function SecuritySettings() {
           setSettings(data.settings)
           setLoginAttempts(data.loginAttempts)
           setLastSaved(new Date())
+        } else if (response.status === 401) {
+          // 认证失败，清除认证信息并重新加载页面
+          localStorage.removeItem('admin_token')
+          localStorage.removeItem('admin_user')
+          toast.error('认证已过期，请重新登录')
+          window.location.reload()
         } else {
           console.error('加载安全设置失败')
           toast.error('加载安全设置失败')
@@ -117,6 +123,12 @@ export function SecuritySettings() {
         const now = new Date()
         setLastSaved(now)
         toast.success('安全设置已保存')
+      } else if (response.status === 401) {
+        // 认证失败，清除认证信息并重新加载页面
+        localStorage.removeItem('admin_token')
+        localStorage.removeItem('admin_user')
+        toast.error('认证已过期，请重新登录')
+        window.location.reload()
       } else {
         const errorData = await response.json()
         toast.error(errorData.error || '保存失败，请重试')

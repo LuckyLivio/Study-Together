@@ -176,3 +176,15 @@ model ChatMessage {
   
   @@map("chat_messages")
 }
+
+model SiteSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique // 设置键名，如 'maintenance', 'theme', 'seo' 等
+  value     String   // JSON 格式的设置值
+  
+  // 时间戳
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("site_settings")
+}

@@ -12,7 +12,9 @@ interface AuthGuardProps {
 // 不需要认证的公开路由
 const PUBLIC_ROUTES = [
   '/login',
-  '/register'
+  '/register',
+  '/maintenance',
+  '/admin'
 ]
 
 // 管理员路由（需要额外验证）
@@ -48,8 +50,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
     const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route))
     const isAdminRoute = ADMIN_ROUTES.some(route => pathname.startsWith(route))
 
-    // 如果是公开路由且已登录，重定向到主页
-    if (isPublicRoute && isAuthenticated) {
+    // 如果是公开路由且已登录，重定向到主页（但排除管理员路由）
+    if (isPublicRoute && isAuthenticated && !isAdminRoute) {
       router.push('/')
       return
     }
