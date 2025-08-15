@@ -29,8 +29,10 @@ export function verifyToken(request: NextRequest) {
 // 验证管理员权限
 export async function verifyAdminAuth(request: NextRequest): Promise<AuthResult> {
   try {
+    // 尝试多种token来源
     const token = request.headers.get('authorization')?.replace('Bearer ', '') ||
-                 request.cookies.get('admin_token')?.value
+                 request.cookies.get('admin_token')?.value ||
+                 request.cookies.get('auth-token')?.value
     
     if (!token) {
       return { success: false, error: 'No token provided' }
@@ -64,8 +66,8 @@ export async function verifyUserAuth(request: NextRequest): Promise<AuthResult> 
 }
 
 // 生成JWT token
-export function generateToken(payload: any, expiresIn: string = '24h'): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn })
+export function generateToken(payload: any, expiresIn: string | number = '24h'): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn } as jwt.SignOptions)
 }
 
 // 验证密码策略
