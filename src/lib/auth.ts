@@ -118,19 +118,22 @@ export function getClientIP(request: NextRequest): string {
   const realIP = request.headers.get('x-real-ip')
   const remoteAddr = request.headers.get('x-remote-addr')
   
+  let ip = '127.0.0.1' // 默认本地IP
+  
   if (forwarded) {
-    return forwarded.split(',')[0].trim()
+    ip = forwarded.split(',')[0].trim()
+  } else if (realIP) {
+    ip = realIP
+  } else if (remoteAddr) {
+    ip = remoteAddr
   }
   
-  if (realIP) {
-    return realIP
+  // 如果是IPv6的localhost，转换为更友好的显示
+  if (ip === '::1' || ip === '127.0.0.1') {
+    ip = '本地访问 (localhost)'
   }
   
-  if (remoteAddr) {
-    return remoteAddr
-  }
-  
-  return '127.0.0.1' // 默认本地IP
+  return ip
 }
 
 // 获取用户代理
