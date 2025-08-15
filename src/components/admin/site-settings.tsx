@@ -54,32 +54,36 @@ export function SiteSettings() {
     try {
       // 加载维护模式设置
       const maintenanceResponse = await fetch('/api/admin/maintenance')
-      if (maintenanceResponse.ok) {
-        const maintenanceData = await maintenanceResponse.json()
-        setSettings(prev => ({
-          ...prev,
-          maintenance: {
-            enabled: maintenanceData.enabled,
-            message: maintenanceData.message
-          }
-        }))
+      let maintenanceSettings = {
+        enabled: false,
+        message: '网站正在维护中，请稍后访问'
       }
       
-      // 从本地存储读取其他设置（暂时保留）
-        const savedSettings = LocalStorage.getItem(STORAGE_KEYS.SITE_SETTINGS, null)
-         if (savedSettings && typeof savedSettings === 'object') {
-           setSettings(prev => ({
-             ...prev,
-             ...(savedSettings as typeof settings),
-             maintenance: prev.maintenance // 保持从API获取的维护模式设置
-           }))
-         }
+      if (maintenanceResponse.ok) {
+        const maintenanceData = await maintenanceResponse.json()
+        maintenanceSettings = {
+          enabled: maintenanceData.enabled,
+          message: maintenanceData.message
+        }
+      }
+      
+      // 加载网站设置
+      const siteResponse = await fetch('/api/admin/site-settings')
+      if (siteResponse.ok) {
+        const siteData = await siteResponse.json()
+        setSettings(prev => ({
+          ...prev,
+          ...siteData,
+          maintenance: maintenanceSettings // 保持从维护模式API获取的设置
+        }))
+      } else {
+        // 如果API失败，设置维护模式
+        setSettings(prev => ({
+          ...prev,
+          maintenance: maintenanceSettings
+        }))
+      }
        
-       // 检查是否有保存记录
-       const lastSaveTime = LocalStorage.getItem('site_last_saved', null)
-       if (lastSaveTime) {
-         setLastSaved(new Date(lastSaveTime))
-       }
     } catch (error) {
       console.error('加载设置失败:', error)
       toast('加载设置失败', {
@@ -91,13 +95,21 @@ export function SiteSettings() {
   const handleSave = async () => {
     setIsSaving(true)
     try {
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('auth-token='))
+        ?.split('=')[1];
+      
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+      
       // 保存维护模式到API
       const maintenanceResponse = await fetch('/api/admin/maintenance', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // 包含cookies
+        headers,
+        credentials: 'include',
         body: JSON.stringify({
           enabled: settings.maintenance.enabled,
           message: settings.maintenance.message
@@ -105,16 +117,36 @@ export function SiteSettings() {
       })
       
       if (!maintenanceResponse.ok) {
-        throw new Error('保存维护模式设置失败')
+        const errorData = await maintenanceResponse.json().catch(() => ({}))
+        throw new Error(errorData.error || `保存维护模式设置失败 (${maintenanceResponse.status})`)
       }
       
-      // 保存其他设置到本地存储
-      LocalStorage.setItem(STORAGE_KEYS.SITE_SETTINGS, settings)
-      LocalStorage.setItem('site_last_saved', new Date().toISOString())
-      setLastSaved(new Date())
+      // 保存网站设置到API
+      const siteResponse = await fetch('/api/admin/site-settings', {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({
+          siteName: settings.siteName,
+          siteDescription: settings.siteDescription,
+          siteUrl: settings.siteUrl,
+          logoUrl: settings.logoUrl,
+          faviconUrl: settings.faviconUrl,
+          contactEmail: settings.contactEmail,
+          contactPhone: settings.contactPhone,
+          address: settings.address,
+          socialLinks: settings.socialLinks,
+          seo: settings.seo,
+          analytics: settings.analytics
+        })
+      })
       
-      // 这里应该调用API保存设置
-      console.log('保存设置:', settings)
+      if (!siteResponse.ok) {
+        const errorData = await siteResponse.json().catch(() => ({}))
+        throw new Error(errorData.error || `保存网站设置失败 (${siteResponse.status})`)
+      }
+      
+      setLastSaved(new Date())
       
       toast('设置已保存', {
         description: '网站设置已成功更新',
@@ -122,7 +154,7 @@ export function SiteSettings() {
     } catch (error) {
       console.error('保存设置失败:', error)
       toast('保存失败', {
-        description: '保存设置时发生错误，请重试',
+        description: error instanceof Error ? error.message : '保存设置时发生错误，请重试',
       })
     } finally {
       setIsSaving(false)
