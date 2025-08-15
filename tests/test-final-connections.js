@@ -1,5 +1,5 @@
 // 最终连接测试脚本 - 验证修复后的连接状态
-const { PrismaClient } = require('./src/generated/prisma')
+const { PrismaClient } = require('../src/generated/prisma')
 require('dotenv').config()
 
 async function testFinalConnections() {

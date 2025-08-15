@@ -75,7 +75,7 @@ export function AdminLayout({ activeTab, onTabChange, onLogout }: AdminLayoutPro
               <h1 className="text-xl font-semibold text-gray-900">管理员面板</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/">
+              <Link href="/landing">
                 <Button variant="outline" size="sm">
                   <Home className="h-4 w-4 mr-2" />
                   返回首页

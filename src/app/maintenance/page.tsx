@@ -89,10 +89,10 @@ export default function MaintenancePage() {
                 )}
               </Button>
               
-              <Link href="/" className="block">
+              <Link href="/landing" className="block">
                 <Button variant="outline" className="w-full">
                   <Home className="h-4 w-4 mr-2" />
-                  返回首页
+                  访问主页
                 </Button>
               </Link>
             </div>
