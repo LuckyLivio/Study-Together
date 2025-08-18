@@ -113,7 +113,7 @@ export default function StudyTaskManager() {
         body: JSON.stringify({
           title: newPlan.title,
           description: newPlan.description || undefined,
-          date: new Date(newPlan.planDate),
+          planDate: new Date(newPlan.planDate),
           tasks: newPlan.tasks
         })
       })
@@ -466,13 +466,20 @@ export default function StudyTaskManager() {
         
         <TabsContent value="goals">
           <DDayCountdown
-            goals={studyGoals.map(goal => ({
-              ...goal,
-              examType: 'OTHER' as const,
-              studyStartDate: new Date(goal.createdAt),
-              totalStudyDays: Math.ceil((new Date(goal.targetDate).getTime() - new Date(goal.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
-              currentProgress: 0
-            }))}
+            goals={studyGoals.map(goal => {
+              const targetDate = new Date(goal.targetDate)
+              const startDate = new Date(goal.createdAt)
+              const totalDays = Math.max(1, Math.ceil((targetDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
+              
+              return {
+                ...goal,
+                examType: 'OTHER' as const,
+                studyStartDate: startDate,
+                totalStudyDays: totalDays,
+                currentProgress: 0,
+                targetDate: targetDate
+              }
+            })}
             onGoalCreate={(data) => {
               const goalData = {
                 title: data.title,
