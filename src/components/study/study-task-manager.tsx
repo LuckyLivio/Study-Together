@@ -437,6 +437,7 @@ export default function StudyTaskManager() {
                   key={plan.id}
                   plan={plan}
                   onTaskToggle={handleTaskToggle}
+                  onPlanUpdate={fetchStudyPlans}
                 />
               ))}
             </div>

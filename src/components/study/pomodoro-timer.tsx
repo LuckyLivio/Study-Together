@@ -13,6 +13,7 @@ interface PomodoroSettings {
   shortBreak: number   // 短休息时长（分钟）
   longBreak: number    // 长休息时长（分钟）
   longBreakInterval: number // 长休息间隔（几个番茄后）
+  customDuration: number // 自定义倒计时时长（分钟）
 }
 
 interface PomodoroTimerProps {
@@ -20,14 +21,15 @@ interface PomodoroTimerProps {
 }
 
 type TimerState = 'idle' | 'running' | 'paused'
-type SessionType = 'work' | 'shortBreak' | 'longBreak'
+type SessionType = 'work' | 'shortBreak' | 'longBreak' | 'custom'
 
 export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps) {
   const [settings, setSettings] = useState<PomodoroSettings>({
     workDuration: 25,
     shortBreak: 5,
     longBreak: 15,
-    longBreakInterval: 4
+    longBreakInterval: 4,
+    customDuration: 30
   })
   
   const [currentSession, setCurrentSession] = useState<SessionType>('work')
@@ -138,7 +140,9 @@ export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps)
       ? settings.workDuration * 60
       : currentSession === 'longBreak'
         ? settings.longBreak * 60
-        : settings.shortBreak * 60
+        : currentSession === 'custom'
+          ? settings.customDuration * 60
+          : settings.shortBreak * 60
     return ((totalTime - timeLeft) / totalTime) * 100
   }
   
@@ -151,6 +155,10 @@ export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps)
         return { title: '短休息', icon: Coffee, color: 'text-green-600' }
       case 'longBreak':
         return { title: '长休息', icon: Coffee, color: 'text-blue-600' }
+      case 'custom':
+        return { title: '自定义倒计时', icon: Settings, color: 'text-purple-600' }
+      default:
+        return { title: '专注工作', icon: BookOpen, color: 'text-red-600' }
     }
   }
   
@@ -262,6 +270,38 @@ export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps)
                   min="2"
                   max="10"
                 />
+              </div>
+            </div>
+            
+            {/* 自定义倒计时设置 */}
+            <div className="border-t pt-4">
+              <h5 className="font-medium text-sm mb-3">自定义倒计时</h5>
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <label className="text-sm">时长(分钟)</label>
+                  <input
+                    type="number"
+                    value={settings.customDuration}
+                    onChange={(e) => setSettings(prev => ({ ...prev, customDuration: parseInt(e.target.value) || 30 }))}
+                    className="w-full px-2 py-1 border rounded text-sm"
+                    min="1"
+                    max="180"
+                  />
+                </div>
+                <Button
+                  onClick={() => {
+                    setCurrentSession('custom')
+                    setTimeLeft(settings.customDuration * 60)
+                    setTimerState('idle')
+                    setShowSettings(false)
+                    toast.success(`自定义倒计时已设置为 ${settings.customDuration} 分钟`)
+                  }}
+                  size="sm"
+                  variant="outline"
+                  disabled={timerState === 'running'}
+                >
+                  启动
+                </Button>
               </div>
             </div>
           </div>
