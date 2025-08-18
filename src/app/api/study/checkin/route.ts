@@ -1,40 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
+import { verifyUserAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession()
-    if (!session?.user?.email) {
+    const authResult = await verifyUserAuth(request)
+    if (!authResult.success) {
       return NextResponse.json({ error: '未授权访问' }, { status: 401 })
     }
 
-    // 通过email获取用户ID
+    // 通过用户ID获取用户信息
     const currentUser = await prisma.user.findUnique({
-      where: { email: session.user.email }
+      where: { id: authResult.userId }
     })
     
     if (!currentUser) {
       return NextResponse.json({ error: '用户不存在' }, { status: 404 })
     }
 
-    const { studyTime, completedTasks, notes } = await request.json()
-    const today = new Date().toISOString().split('T')[0]
+    const requestBody = await request.json()
+    console.log('打卡请求数据:', requestBody)
+    const { studyTime, completedTasks, notes } = requestBody
+    
+    // 验证必需字段
+    if (typeof studyTime !== 'number' || typeof completedTasks !== 'number') {
+      console.log('数据验证失败:', { studyTime, completedTasks, notes })
+      return NextResponse.json(
+        { error: '数据格式错误：studyTime 和 completedTasks 必须是数字' },
+        { status: 400 }
+      )
+    }
+    const today = new Date()
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
 
     // 检查今日是否已打卡（使用studyPlan表模拟）
+    console.log('检查打卡时间范围:', { todayStart, todayEnd, userId: currentUser.id })
     const existingCheckin = await prisma.studyPlan.findFirst({
       where: {
         userId: currentUser.id,
-        planDate: today,
+        planDate: {
+          gte: todayStart,
+          lt: todayEnd
+        },
         title: '每日打卡'
       }
     })
+    
+    console.log('现有打卡记录:', existingCheckin)
 
     if (existingCheckin) {
-      return NextResponse.json(
-        { error: '今日已完成打卡' },
-        { status: 400 }
-      )
+      console.log('今日已打卡，更新现有记录')
+      // 更新现有打卡记录而不是返回错误
+      const updatedCheckin = await prisma.studyPlan.update({
+        where: { id: existingCheckin.id },
+        data: {
+          description: notes || '每日学习打卡',
+          tasks: {
+            deleteMany: {},
+            create: {
+              title: '打卡任务',
+              description: `学习时长: ${studyTime}分钟, 完成任务: ${completedTasks}个`,
+              taskType: 'CHECKIN',
+              duration: studyTime || 0,
+              isCompleted: true,
+              completedAt: new Date()
+            }
+          }
+        },
+        include: {
+          tasks: true
+        }
+      })
+      
+      return NextResponse.json({
+        success: true,
+        checkin: updatedCheckin,
+        consecutiveDays: 1, // 简化处理
+        totalCheckins: 1
+      })
     }
 
     // 创建打卡记录
@@ -43,7 +87,7 @@ export async function POST(request: NextRequest) {
         userId: currentUser.id,
         title: '每日打卡',
         description: notes || '每日学习打卡',
-        planDate: today,
+        planDate: todayStart,
         isCompleted: true,
         tasks: {
           create: {
@@ -106,14 +150,14 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession()
-    if (!session?.user?.email) {
+    const authResult = await verifyUserAuth(request)
+    if (!authResult.success) {
       return NextResponse.json({ error: '未授权访问' }, { status: 401 })
     }
 
-    // 通过email获取用户ID
+    // 通过用户ID获取用户信息
     const currentUser = await prisma.user.findUnique({
-      where: { email: session.user.email }
+      where: { id: authResult.userId }
     })
     
     if (!currentUser) {
@@ -147,7 +191,10 @@ export async function GET(request: NextRequest) {
     })
 
     // 检查今日是否已打卡
-    const todayCheckin = checkinRecords.find(record => record.planDate === today)
+    const todayCheckin = checkinRecords.find(record => {
+      const recordDate = new Date(record.planDate)
+      return recordDate.toISOString().split('T')[0] === today
+    })
     const hasCheckedInToday = !!todayCheckin
 
     // 计算连续打卡天数
