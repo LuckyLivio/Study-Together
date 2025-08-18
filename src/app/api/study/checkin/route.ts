@@ -50,35 +50,11 @@ export async function POST(request: NextRequest) {
     console.log('现有打卡记录:', existingCheckin)
 
     if (existingCheckin) {
-      console.log('今日已打卡，更新现有记录')
-      // 更新现有打卡记录而不是返回错误
-      const updatedCheckin = await prisma.studyPlan.update({
-        where: { id: existingCheckin.id },
-        data: {
-          description: notes || '每日学习打卡',
-          tasks: {
-            deleteMany: {},
-            create: {
-              title: '打卡任务',
-              description: `学习时长: ${studyTime}分钟, 完成任务: ${completedTasks}个`,
-              taskType: 'CHECKIN',
-              duration: studyTime || 0,
-              isCompleted: true,
-              completedAt: new Date()
-            }
-          }
-        },
-        include: {
-          tasks: true
-        }
-      })
-      
-      return NextResponse.json({
-        success: true,
-        checkin: updatedCheckin,
-        consecutiveDays: 1, // 简化处理
-        totalCheckins: 1
-      })
+      console.log('今日已打卡，不允许重复打卡')
+      return NextResponse.json(
+        { error: '今日已打卡，每天只能打卡一次' },
+        { status: 400 }
+      )
     }
 
     // 创建打卡记录
@@ -166,22 +142,41 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const month = searchParams.get('month') // YYYY-MM format
-    const today = new Date().toISOString().split('T')[0]
+    
+    // 使用与POST相同的日期范围逻辑
+    const today = new Date()
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+    
+    console.log('检查打卡时间范围:', { todayStart, todayEnd, userId: currentUser.id })
+    
+    // 检查今日是否已打卡（使用与POST相同的查询逻辑）
+    const todayCheckin = await prisma.studyPlan.findFirst({
+      where: {
+        userId: currentUser.id,
+        planDate: {
+          gte: todayStart,
+          lt: todayEnd
+        },
+        title: '每日打卡'
+      }
+    })
+    
+    const hasCheckedInToday = !!todayCheckin
+    console.log('今日打卡状态:', { hasCheckedInToday, todayCheckin: todayCheckin?.id })
 
     // 获取打卡记录
-    const whereClause: any = {
-      userId: currentUser.id,
-      title: '每日打卡'
-    }
-
-    if (month) {
-      whereClause.planDate = {
-        startsWith: month
-      }
-    }
-
     const checkinRecords = await prisma.studyPlan.findMany({
-      where: whereClause,
+      where: {
+        userId: currentUser.id,
+        title: '每日打卡',
+        ...(month && {
+          planDate: {
+            gte: new Date(`${month}-01`),
+            lt: new Date(new Date(`${month}-01`).getFullYear(), new Date(`${month}-01`).getMonth() + 1, 1)
+          }
+        })
+      },
       include: {
         tasks: true
       },
@@ -189,13 +184,6 @@ export async function GET(request: NextRequest) {
         planDate: 'desc'
       }
     })
-
-    // 检查今日是否已打卡
-    const todayCheckin = checkinRecords.find(record => {
-      const recordDate = new Date(record.planDate)
-      return recordDate.toISOString().split('T')[0] === today
-    })
-    const hasCheckedInToday = !!todayCheckin
 
     // 计算连续打卡天数
     const completedCheckins = checkinRecords.filter(record => record.isCompleted)

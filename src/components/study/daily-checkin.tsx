@@ -42,21 +42,44 @@ export default function DailyCheckin({ onCheckin }: DailyCheckinProps) {
   
   // 获取打卡记录
   const fetchCheckinRecords = async () => {
+    console.log('=== fetchCheckinRecords 函数被调用 ===')
+    console.log('准备发送GET请求到 /api/study/checkin')
     try {
       const response = await fetch('/api/study/checkin')
+      console.log('打卡记录API响应状态:', response.status)
       if (response.ok) {
         const data = await response.json()
-        const records = data.records || []
+        console.log('获取到的打卡数据:', data)
+        
+        // 后端返回的是studyPlan格式，需要转换为CheckinRecord格式
+        const records = (data.records || []).map((plan: any) => ({
+          id: plan.id,
+          date: new Date(plan.planDate).toISOString().split('T')[0],
+          studyTime: plan.tasks?.reduce((total: number, task: any) => total + (task.duration || 0), 0) || 0,
+          pomodoroSessions: 0, // 暂时设为0，后续可以从任务中计算
+          completedTasks: plan.tasks?.filter((task: any) => task.isCompleted).length || 0,
+          notes: plan.description || '',
+          createdAt: plan.createdAt
+        }))
+        
+        console.log('转换后的记录:', records)
         setCheckinRecords(records)
         
-        // 检查今日是否已打卡
+        // 使用后端返回的hasCheckedInToday状态
+        console.log('后端返回的今日打卡状态:', data.hasCheckedInToday)
+        setIsCheckedIn(data.hasCheckedInToday || false)
+        
+        // 检查今日打卡记录
         const today = format(new Date(), 'yyyy-MM-dd')
         const todayCheckin = records.find((record: CheckinRecord) => record.date === today)
+        console.log('今日打卡记录:', todayCheckin)
         setTodayRecord(todayCheckin || null)
-        setIsCheckedIn(!!todayCheckin)
         
-        // 计算连续打卡天数
-        calculateStreak(records)
+        // 使用后端返回的连续天数
+        console.log('连续打卡天数:', data.consecutiveDays)
+        setStreak(data.consecutiveDays || 0)
+      } else {
+        console.error('获取打卡记录失败，状态码:', response.status)
       }
     } catch (error) {
       console.error('获取打卡记录失败:', error)
@@ -140,6 +163,7 @@ export default function DailyCheckin({ onCheckin }: DailyCheckinProps) {
   }
 
   useEffect(() => {
+    console.log('DailyCheckin组件初始化，开始获取数据...')
     fetchUserInfo()
     fetchCheckinRecords()
   }, [])
@@ -166,9 +190,10 @@ export default function DailyCheckin({ onCheckin }: DailyCheckinProps) {
       
       if (response.ok) {
         const newRecord = await response.json()
-        setTodayRecord(newRecord.record)
-        setIsCheckedIn(true)
-        setStreak(prev => prev + 1)
+        toast.success('打卡成功！')
+        
+        // 重新获取打卡记录以确保状态同步
+        await fetchCheckinRecords()
         
         // 转换数据格式给回调函数
         const callbackData = {
@@ -187,7 +212,7 @@ export default function DailyCheckin({ onCheckin }: DailyCheckinProps) {
         }
       } else {
         const error = await response.json()
-        toast.error(error.message || '打卡失败')
+        toast.error(error.error || '打卡失败')
       }
     } catch (error) {
       console.error('打卡失败:', error)
