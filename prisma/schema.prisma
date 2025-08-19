@@ -50,6 +50,11 @@ model User {
   studyGoals        StudyGoal[]
   studyPlans        StudyPlan[]
   
+  // Message Wall relationships
+  sentMessages      MessageWallPost[]     @relation("SentMessages")
+  receivedMessages  MessageWallPost[]     @relation("ReceivedMessages")
+  messageReactions  MessageReaction[]
+  
   @@map("users")
 }
 
@@ -260,4 +265,62 @@ enum TaskType {
   EXERCISE    // 练习
   REVIEW      // 复习
   OTHER       // 其他
+}
+
+// 留言墙模型
+model MessageWallPost {
+  id          String    @id @default(cuid())
+  senderId    String    // 发送者ID
+  receiverId  String    // 接收者ID
+  content     String    // 留言内容
+  messageType MessageType @default(TEXT) // 留言类型
+  
+  // 附件信息
+  attachments String[]  @default([]) // 附件URL数组（图片、贴图等）
+  
+  // 小惊喜相关
+  surpriseType String?  // 惊喜类型（如：heart_rain, confetti, fireworks等）
+  surpriseData String?  // 惊喜数据（JSON格式）
+  
+  // 状态
+  isRead      Boolean   @default(false) // 是否已读
+  isDeleted   Boolean   @default(false) // 是否已删除
+  
+  // 时间戳
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 关联关系
+  sender      User      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User      @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  reactions   MessageReaction[]
+  
+  @@map("message_wall_posts")
+}
+
+// 留言反应模型（点赞、爱心等）
+model MessageReaction {
+  id        String    @id @default(cuid())
+  messageId String    // 留言ID
+  userId    String    // 用户ID
+  emoji     String    // emoji表情
+  
+  // 时间戳
+  createdAt DateTime  @default(now())
+  
+  // 关联关系
+  message   MessageWallPost @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // 确保同一用户对同一留言的同一emoji只能有一个反应
+  @@unique([messageId, userId, emoji])
+  @@map("message_reactions")
+}
+
+enum MessageType {
+  TEXT        // 纯文本
+  IMAGE       // 图片
+  STICKER     // 贴图
+  SURPRISE    // 小惊喜
+  MIXED       // 混合类型（文本+图片/贴图）
 }

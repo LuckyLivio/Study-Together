@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
 import { prisma } from '@/lib/prisma'
+import { verifyUserAuth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession()
-    if (!session?.user?.email) {
+    const authResult = await verifyUserAuth(request)
+    if (!authResult.success) {
       return NextResponse.json({ error: '未授权访问' }, { status: 401 })
     }
-
-    // 通过email获取用户ID
-    const currentUser = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
     
-    if (!currentUser) {
-      return NextResponse.json({ error: '用户不存在' }, { status: 404 })
-    }
-    
-    const userId = currentUser.id
+    const userId = authResult.userId!
     const now = new Date()
     const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
     const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000)
