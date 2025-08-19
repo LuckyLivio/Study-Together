@@ -150,22 +150,23 @@ export default function AIAssistantPage() {
                 </div>
               </div>
             </div>
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* 清空聊天按钮 */}
-              <div className="relative px-3 sm:px-4 py-2 bg-gradient-to-r from-white/95 via-white/90 to-white/95 backdrop-blur-sm border-b border-white/30 flex justify-end z-10">
+            <div className="flex-1 flex overflow-hidden">
+              {/* 左侧清空按钮区域 */}
+              <div className="w-16 flex flex-col items-center py-4 bg-gradient-to-b from-white/50 to-white/30 backdrop-blur-sm border-r border-white/30">
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={handleClearChat}
                   disabled={messages.length === 0}
-                  className="h-8 px-3 rounded-lg border border-white/60 bg-white/80 backdrop-blur-sm hover:border-red-400/60 hover:bg-red-50/80 transition-all duration-200 shadow-sm hover:shadow-md ring-1 ring-white/20 text-xs font-medium"
+                  className="h-10 w-10 p-0 rounded-lg border border-white/60 bg-white/80 backdrop-blur-sm hover:border-red-400/60 hover:bg-red-50/80 transition-all duration-200 shadow-sm hover:shadow-md ring-1 ring-white/20 flex items-center justify-center"
+                  title="清空聊天"
                 >
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  清空聊天
+                  <Sparkles className="h-4 w-4" />
                 </Button>
               </div>
               {/* 消息列表 */}
-              <ScrollArea className="flex-1 pr-2" ref={scrollAreaRef}>
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <ScrollArea className="flex-1 pr-2" ref={scrollAreaRef}>
                 <div className="space-y-3 py-3 pl-4 pr-3">
                   {messages.length === 0 ? (
                     <div className="text-center py-8">
@@ -327,6 +328,7 @@ export default function AIAssistantPage() {
                 </div>
               </div>
             </div>
+          </div>
         </div>
       </div>
     </div>

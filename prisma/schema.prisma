@@ -274,6 +274,7 @@ model MessageWallPost {
   receiverId  String    // 接收者ID
   content     String    // 留言内容
   messageType MessageType @default(TEXT) // 留言类型
+  visibility  MessageVisibility @default(PRIVATE) // 留言可见性
   
   // 附件信息
   attachments String[]  @default([]) // 附件URL数组（图片、贴图等）
@@ -323,4 +324,9 @@ enum MessageType {
   STICKER     // 贴图
   SURPRISE    // 小惊喜
   MIXED       // 混合类型（文本+图片/贴图）
+}
+
+enum MessageVisibility {
+  PRIVATE     // 情侣留言，仅双方可见
+  PUBLIC      // 个人留言，所有人可见
 }

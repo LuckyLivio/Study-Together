@@ -37,9 +37,10 @@ interface AIStore {
   // 发送消息到AI
   sendMessage: (content: string, userId?: string, coupleId?: string) => Promise<void>
   
-  // 配置方法
+  // AI配置
   setAIEnabled: (enabled: boolean) => void
   setMaxMessages: (max: number) => void
+  clearAllData: () => void
 }
 
 export const useAIStore = create<AIStore>()(
@@ -223,6 +224,12 @@ export const useAIStore = create<AIStore>()(
           const data = await response.json()
           
           if (!response.ok) {
+            // 如果是对话不存在的错误，清除无效的conversationId并重试
+            if (data.error === 'Conversation not found' && currentConversationId) {
+              set({ currentConversationId: null, messages: [] })
+              // 递归调用，这次会创建新对话
+              return await get().sendMessage(content, userId, coupleId)
+            }
             throw new Error(data.error || 'AI服务暂时不可用')
           }
           
@@ -258,6 +265,16 @@ export const useAIStore = create<AIStore>()(
       // 设置最大消息数
       setMaxMessages: (max: number) => {
         set({ maxMessages: max })
+      },
+
+      // 清除所有AI存储数据（用于调试或重置）
+      clearAllData: () => {
+        set({
+          currentConversationId: null,
+          conversations: [],
+          messages: [],
+          error: null
+        })
       }
     }),
     {
