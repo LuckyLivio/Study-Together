@@ -65,7 +65,7 @@ export function AdminLayout({ activeTab, onTabChange, onLogout }: AdminLayoutPro
     }
   }
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16">
       {/* 顶部导航栏 */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -90,7 +90,7 @@ export function AdminLayout({ activeTab, onTabChange, onLogout }: AdminLayoutPro
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
         <div className="flex gap-8">
           {/* 侧边栏 */}
           <div className="w-64 flex-shrink-0">

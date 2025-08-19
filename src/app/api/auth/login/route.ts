@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, UserStatus } from '@/generated/prisma';
+import { UserStatus } from '@/generated/prisma';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { getClientIP, getUserAgent } from '@/lib/auth';
@@ -10,8 +11,6 @@ import {
   clearFailedAttempts,
   checkIPWhitelist 
 } from '@/lib/security';
-
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // POST /api/auth/login - 用户登录

@@ -1,8 +1,6 @@
-import { PrismaClient } from '@/generated/prisma'
+import { prisma } from '@/lib/prisma'
 import { getClientIP, getUserAgent } from './auth'
 import { NextRequest } from 'next/server'
-
-const prisma = new PrismaClient()
 
 interface SecuritySettings {
   maxLoginAttempts: number

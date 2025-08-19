@@ -119,8 +119,14 @@ export async function GET(request: NextRequest) {
       where: whereCondition
     });
 
+    // 处理attachments字段的JSON解析
+    const processedMessages = messages.map(message => ({
+      ...message,
+      attachments: message.attachments ? JSON.parse(message.attachments) : []
+    }));
+
     return NextResponse.json({
-      messages,
+      messages: processedMessages,
       pagination: {
         page,
         limit,
@@ -186,7 +192,7 @@ export async function POST(request: NextRequest) {
         receiverId,
         content: content || '',
         messageType,
-        attachments,
+        attachments: JSON.stringify(attachments || []),
         surpriseType,
         surpriseData,
         visibility
@@ -222,6 +228,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message }, { status: 201 });
   } catch (error) {
     console.error('Error creating message:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      cause: error instanceof Error ? error.cause : undefined
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

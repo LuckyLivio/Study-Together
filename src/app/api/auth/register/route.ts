@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, Role, UserStatus, Gender } from '@/generated/prisma';
+import { Role, UserStatus, Gender } from '@/generated/prisma';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { validatePasswordPolicy } from '@/lib/security';
-
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // POST /api/auth/register - 用户注册

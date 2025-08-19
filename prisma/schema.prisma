@@ -10,7 +10,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -106,7 +106,7 @@ model SecuritySettings {
   lockoutDuration   Int      @default(15) // 分钟
   sessionTimeout    Int      @default(60) // 分钟
   requireTwoFactor  Boolean  @default(false)
-  allowedIPs        String[] @default([])
+  allowedIPs        String   @default("") // JSON string for SQLite compatibility
   
   // 密码策略
   passwordMinLength       Int     @default(8)
@@ -277,7 +277,7 @@ model MessageWallPost {
   visibility  MessageVisibility @default(PRIVATE) // 留言可见性
   
   // 附件信息
-  attachments String[]  @default([]) // 附件URL数组（图片、贴图等）
+  attachments String    @default("") // JSON string for SQLite compatibility
   
   // 小惊喜相关
   surpriseType String?  // 惊喜类型（如：heart_rain, confetti, fireworks等）

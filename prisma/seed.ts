@@ -17,7 +17,7 @@ async function main() {
       lockoutDuration: 15,
       sessionTimeout: 60,
       requireTwoFactor: false,
-      allowedIPs: [],
+      allowedIPs: '', // SQLite不支持数组，使用空字符串
       passwordMinLength: 8,
       passwordRequireUppercase: true,
       passwordRequireLowercase: true,

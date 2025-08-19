@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@/generated/prisma'
+import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { getClientIP, getUserAgent } from '@/lib/auth'
@@ -10,8 +10,6 @@ import {
   clearFailedAttempts,
   checkIPWhitelist 
 } from '@/lib/security'
-
-const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request)
