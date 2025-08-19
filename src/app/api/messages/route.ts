@@ -35,15 +35,52 @@ export async function GET(request: NextRequest) {
     // 获取情侣双方的ID
     const coupleUserIds = user.couple.users.map(u => u.id);
     
-    // 获取留言列表（只显示情侣双方的留言）
-    const messages = await prisma.messageWallPost.findMany({
-      where: {
+    // 获取留言类型参数
+    const visibility = searchParams.get('visibility') || 'all'; // 'all', 'private', 'public'
+    
+    // 构建查询条件
+    let whereCondition: any = {
+      AND: [
+        { isDeleted: false }
+      ]
+    };
+    
+    if (visibility === 'private') {
+      // 情侣留言：仅显示情侣双方的私密留言
+      whereCondition.AND.push(
+        { senderId: { in: coupleUserIds } },
+        { receiverId: { in: coupleUserIds } },
+        { visibility: 'PRIVATE' }
+      );
+    } else if (visibility === 'public') {
+      // 个人留言：显示所有公开留言
+      whereCondition.AND.push(
+        { visibility: 'PUBLIC' }
+      );
+    } else {
+      // 显示所有留言：情侣私密留言 + 所有公开留言
+      whereCondition = {
         AND: [
-          { senderId: { in: coupleUserIds } },
-          { receiverId: { in: coupleUserIds } },
-          { isDeleted: false }
+          { isDeleted: false },
+          {
+            OR: [
+              {
+                AND: [
+                  { senderId: { in: coupleUserIds } },
+                  { receiverId: { in: coupleUserIds } },
+                  { visibility: 'PRIVATE' }
+                ]
+              },
+              { visibility: 'PUBLIC' }
+            ]
+          }
         ]
-      },
+      };
+    }
+    
+    // 获取留言列表
+    const messages = await prisma.messageWallPost.findMany({
+      where: whereCondition,
       include: {
         sender: {
           select: {
@@ -79,13 +116,7 @@ export async function GET(request: NextRequest) {
 
     // 获取总数
     const total = await prisma.messageWallPost.count({
-      where: {
-        AND: [
-          { senderId: { in: coupleUserIds } },
-          { receiverId: { in: coupleUserIds } },
-          { isDeleted: false }
-        ]
-      }
+      where: whereCondition
     });
 
     return NextResponse.json({
@@ -113,7 +144,7 @@ export async function POST(request: NextRequest) {
 
     const { userId } = authResult;
     const body = await request.json();
-    const { content, messageType = 'TEXT', attachments = [], surpriseType, surpriseData } = body;
+    const { content, messageType = 'TEXT', attachments = [], surpriseType, surpriseData, visibility = 'PRIVATE' } = body;
 
     if (!content && (!attachments || attachments.length === 0)) {
       return NextResponse.json({ error: 'Content or attachments required' }, { status: 400 });
@@ -141,16 +172,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Receiver not found' }, { status: 400 });
     }
 
+    // 根据visibility确定接收者
+    let receiverId = receiver.id;
+    if (visibility === 'PUBLIC') {
+      // 公开留言可以设置为发送给自己，表示这是一条公开留言
+      receiverId = userId!;
+    }
+    
     // 创建留言
     const message = await prisma.messageWallPost.create({
       data: {
         senderId: userId!,
-        receiverId: receiver.id,
+        receiverId,
         content: content || '',
         messageType,
         attachments,
         surpriseType,
-        surpriseData
+        surpriseData,
+        visibility
       },
       include: {
         sender: {

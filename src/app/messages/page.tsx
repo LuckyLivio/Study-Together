@@ -33,6 +33,7 @@ interface MessageWallPost {
   surpriseType?: string;
   surpriseData?: string;
   isRead: boolean;
+  visibility: 'PRIVATE' | 'PUBLIC';
   createdAt: string;
   sender: {
     id: string;
@@ -83,6 +84,8 @@ export default function MessagesPage() {
   const [showSurprisePicker, setShowSurprisePicker] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [messageVisibility, setMessageVisibility] = useState<'PRIVATE' | 'PUBLIC'>('PRIVATE');
+  const [viewFilter, setViewFilter] = useState<'all' | 'private' | 'public'>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { activeEffect, triggerEffect, stopEffect } = useEmojiRain();
@@ -115,9 +118,11 @@ export default function MessagesPage() {
   }, []);
 
   // 获取留言列表
-  const fetchMessages = async () => {
+  const fetchMessages = async (filter?: string) => {
     try {
-      const response = await fetch('/api/messages');
+      const filterParam = filter || viewFilter;
+      const url = filterParam === 'all' ? '/api/messages' : `/api/messages?visibility=${filterParam}`;
+      const response = await fetch(url);
       if (response.ok) {
         const data: MessageWallData = await response.json();
         const newMessages = data.messages;
@@ -153,6 +158,13 @@ export default function MessagesPage() {
   useEffect(() => {
     fetchMessages();
   }, []);
+  
+  // 监听筛选条件变化
+  useEffect(() => {
+    if (currentUserId) {
+      fetchMessages();
+    }
+  }, [viewFilter, currentUserId]);
 
   const handleNoCoupleRelationship = () => {
     return (
@@ -231,7 +243,8 @@ export default function MessagesPage() {
         messageType: attachments.length > 0 ? (newMessage ? 'MIXED' : 'IMAGE') : 'TEXT',
         attachments,
         surpriseType,
-        surpriseData: surpriseType ? JSON.stringify({ type: surpriseType }) : undefined
+        surpriseData: surpriseType ? JSON.stringify({ type: surpriseType }) : undefined,
+        visibility: messageVisibility
       };
 
       const response = await fetch('/api/messages', {
@@ -387,6 +400,40 @@ export default function MessagesPage() {
         </div>
         
         <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+          {/* 筛选器 */}
+          <div className="px-4 py-3 bg-gradient-to-r from-gray-50/80 to-white/80 border-b border-gray-200/50">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">筛选:</span>
+                <div className="flex gap-1">
+                  <Button
+                    variant={viewFilter === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewFilter('all')}
+                    className="h-7 px-3 text-xs"
+                  >
+                    全部
+                  </Button>
+                  <Button
+                    variant={viewFilter === 'private' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewFilter('private')}
+                    className="h-7 px-3 text-xs"
+                  >
+                    情侣留言
+                  </Button>
+                  <Button
+                    variant={viewFilter === 'public' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewFilter('public')}
+                    className="h-7 px-3 text-xs"
+                  >
+                    个人留言
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
           {/* 留言列表 */}
           <ScrollArea className="flex-1 pr-2" style={{height: 'calc(100vh - 12rem)'}}>
             <div className="space-y-3 py-3 pl-4 pr-3">
@@ -422,7 +469,15 @@ export default function MessagesPage() {
                       
                       <div className={`flex flex-col ${maxWidth} ${message.sender.id === currentUserId ? 'items-end' : 'items-start'}`}>
                         <div className={`flex items-center gap-2 mb-1 ${message.sender.id === currentUserId ? 'flex-row-reverse' : ''}`}>
-                          <span className="text-sm font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">{message.sender.displayName}</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm font-semibold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">{message.sender.displayName}</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded-full font-medium" style={{
+                              backgroundColor: message.visibility === 'PRIVATE' ? '#fce7f3' : '#f0f9ff',
+                              color: message.visibility === 'PRIVATE' ? '#be185d' : '#0369a1'
+                            }}>
+                              {message.visibility === 'PRIVATE' ? '💕' : '🌟'}
+                            </span>
+                          </div>
                           <span className="text-xs text-gray-500/80 font-medium">
                             {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true, locale: zhCN })}
                           </span>
@@ -532,6 +587,29 @@ export default function MessagesPage() {
                 ))}
               </div>
             )}
+            
+            {/* 留言类型选择器 */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-medium text-gray-700">留言类型:</span>
+              <div className="flex gap-1">
+                <Button
+                  variant={messageVisibility === 'PRIVATE' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setMessageVisibility('PRIVATE')}
+                  className="h-7 px-3 text-xs"
+                >
+                  💕 情侣留言
+                </Button>
+                <Button
+                  variant={messageVisibility === 'PUBLIC' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setMessageVisibility('PUBLIC')}
+                  className="h-7 px-3 text-xs"
+                >
+                  🌟 个人留言
+                </Button>
+              </div>
+            </div>
             
             <div className="flex gap-2 items-end">
               <div className="flex-1">

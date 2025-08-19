@@ -77,7 +77,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-pink-50">
       {/* 主要内容 */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
         {/* 页面标题 */}
         <div className="text-center mb-16">
           <div className="flex justify-center mb-6">
@@ -236,7 +236,7 @@ export default function AboutPage() {
       <footer className="bg-gray-50 border-t border-gray-200 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600">
-            <p>&copy; 2024 {config.name}. Made with ❤️ for couples who study together.</p>
+            <p>&copy; 2024 {config.name}. Made by Livio with ❤️ for couples who study together.</p>
           </div>
         </div>
       </footer>
