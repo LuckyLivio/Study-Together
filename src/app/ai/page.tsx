@@ -6,12 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Send, Bot, User, Loader2, AlertCircle } from 'lucide-react';
+import { Send, Bot, User, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/lib/auth-store';
 import { useAIStore } from '@/lib/ai-store';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
 
 export default function AIAssistantPage() {
   const { user, isAuthenticated } = useAuthStore();
@@ -105,172 +106,228 @@ export default function AIAssistantPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 h-[calc(100vh-4rem)]">
-      <div className="max-w-4xl mx-auto h-full flex flex-col">
-        {/* 页面标题 */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">AI学习助手</h1>
-          <p className="text-gray-600">你的专属学习伙伴，随时为你答疑解惑</p>
-        </div>
-
-        {/* 聊天界面 */}
-        <Card className="flex-1 flex flex-col">
-          <CardHeader className="flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Bot className="h-5 w-5 text-blue-500" />
-                AI助手
-              </CardTitle>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleClearChat}
-                disabled={messages.length === 0}
-              >
-                清空聊天
-              </Button>
+    <div className="fixed inset-0 top-16 overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 via-purple-50 to-pink-50 pt-0">
+      <div className="container mx-auto max-w-4xl h-full p-4 flex justify-center">
+        <div className="w-full h-full flex flex-col backdrop-blur-md bg-white/90 border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] rounded-2xl sm:rounded-3xl overflow-hidden relative">
+            {/* 装饰性背景元素 */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/5 pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-300/20 to-transparent rounded-full blur-2xl pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-purple-300/20 to-transparent rounded-full blur-2xl pointer-events-none"></div>
+            {/* 优化的标题栏 */}
+            <div className="relative flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-blue-500/8 via-indigo-500/8 to-purple-500/8 backdrop-blur-sm border-b border-white/30 flex-shrink-0 z-10">
+              <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-sm"></div>
+              {/* 左侧标题 */}
+              <div className="relative flex items-center gap-2 sm:gap-3 z-10">
+                <div className="p-1.5 sm:p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg sm:rounded-xl shadow-lg ring-1 ring-white/20">
+                  <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-white drop-shadow-sm" />
+                </div>
+                <div className="flex flex-col">
+                  <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
+                    AI学习助手
+                  </h1>
+                  <p className="text-xs text-gray-600/80 mt-0.5 hidden sm:block font-medium">你的专属学习伙伴</p>
+                </div>
+              </div>
+              
+              {/* 右侧消息统计 */}
+              <div className="relative flex items-center gap-2 sm:gap-4 z-10">
+                <div className="text-right">
+                  <div className="text-sm font-bold text-gray-700 drop-shadow-sm">
+                    {messages.length}
+                  </div>
+                  <div className="text-xs text-gray-600/80 font-medium">
+                    条对话
+                  </div>
+                </div>
+                <div className="w-px h-6 sm:h-8 bg-gradient-to-b from-blue-300/60 via-indigo-300/60 to-purple-300/60 shadow-sm"></div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-gray-700 drop-shadow-sm">
+                    AI
+                  </div>
+                  <div className="text-xs text-gray-600/80 font-medium">
+                    助手
+                  </div>
+                </div>
+              </div>
             </div>
-          </CardHeader>
-          
-          <CardContent className="flex-1 flex flex-col p-0">
-            {/* 消息列表 */}
-            <ScrollArea className="flex-1 px-6" ref={scrollAreaRef}>
-              <div className="space-y-4 py-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {message.role === 'assistant' && (
-                      <Avatar className="h-8 w-8 flex-shrink-0">
-                        <AvatarFallback className="bg-blue-100 text-blue-600">
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* 清空聊天按钮 */}
+              <div className="relative px-3 sm:px-4 py-2 bg-gradient-to-r from-white/95 via-white/90 to-white/95 backdrop-blur-sm border-b border-white/30 flex justify-end z-10">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleClearChat}
+                  disabled={messages.length === 0}
+                  className="h-8 px-3 rounded-lg border border-white/60 bg-white/80 backdrop-blur-sm hover:border-red-400/60 hover:bg-red-50/80 transition-all duration-200 shadow-sm hover:shadow-md ring-1 ring-white/20 text-xs font-medium"
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  清空聊天
+                </Button>
+              </div>
+              {/* 消息列表 */}
+              <ScrollArea className="flex-1 pr-2" ref={scrollAreaRef}>
+                <div className="space-y-3 py-3 pl-4 pr-3">
+                  {messages.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Bot className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500 text-sm">开始与AI助手对话吧！</p>
+                    </div>
+                  ) : (
+                    messages.map((message) => {
+                      // 计算消息内容长度来决定气泡宽度
+                      const contentLength = message.content?.length || 0;
+                      
+                      // 根据内容长度动态设置最大宽度
+                      let maxWidth = 'max-w-[80%]';
+                      if (contentLength < 20) {
+                        maxWidth = 'max-w-fit';
+                      } else if (contentLength < 50) {
+                        maxWidth = 'max-w-[60%]';
+                      } else if (contentLength < 100) {
+                        maxWidth = 'max-w-[70%]';
+                      }
+                      
+                      return (
+                        <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                          <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-white shadow-md">
+                            <AvatarFallback className={`font-semibold text-sm ${
+                              message.role === 'user' 
+                                ? 'bg-gradient-to-br from-green-400 to-blue-500 text-white' 
+                                : 'bg-gradient-to-br from-blue-400 to-purple-500 text-white'
+                            }`}>
+                              {message.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                            </AvatarFallback>
+                          </Avatar>
+                          
+                          <div className={`flex flex-col ${maxWidth} ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
+                            <div className={`flex items-center gap-2 mb-1 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                              <span className={`text-sm font-semibold ${
+                                message.role === 'user' 
+                                  ? 'bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent' 
+                                  : 'bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent'
+                              }`}>
+                                {message.role === 'user' ? '你' : 'AI助手'}
+                              </span>
+                              <span className="text-xs text-gray-500/80 font-medium">
+                                {new Date(message.timestamp).toLocaleTimeString()}
+                              </span>
+                            </div>
+                            
+                            <div className={`relative rounded-2xl px-4 py-3 break-words transition-all duration-200 hover:shadow-lg ${
+                              message.role === 'user' 
+                                ? 'bg-gradient-to-br from-green-500 via-green-600 to-blue-600 text-white shadow-lg shadow-green-500/30 ring-1 ring-white/20' 
+                                : 'bg-gradient-to-br from-white via-gray-50/50 to-white border border-gray-200/60 text-gray-800 shadow-md hover:shadow-lg ring-1 ring-gray-100/50'
+                            } ${contentLength < 20 ? 'inline-block' : 'w-full'}`}>
+                              <div className="break-words">
+                                {message.role === 'assistant' ? (
+                                  <div className="prose prose-sm max-w-none">
+                                    <ReactMarkdown 
+                                      remarkPlugins={[remarkGfm]}
+                                      components={{
+                                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                        code: ({ children }) => (
+                                          <code className="bg-blue-100/80 text-blue-800 px-1 py-0.5 rounded text-sm">
+                                            {children}
+                                          </code>
+                                        ),
+                                        pre: ({ children }) => (
+                                          <pre className="bg-gray-800 text-gray-100 p-3 rounded-lg overflow-x-auto my-2">
+                                            {children}
+                                          </pre>
+                                        ),
+                                        ul: ({ children }) => <ul className="list-disc list-inside mb-2">{children}</ul>,
+                                        ol: ({ children }) => <ol className="list-decimal list-inside mb-2">{children}</ol>,
+                                        li: ({ children }) => <li className="mb-1">{children}</li>,
+                                        h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+                                        h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
+                                        h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
+                                        blockquote: ({ children }) => (
+                                          <blockquote className="border-l-4 border-blue-300 pl-3 italic my-2">
+                                            {children}
+                                          </blockquote>
+                                        ),
+                                      }}
+                                    >
+                                      {message.content}
+                                    </ReactMarkdown>
+                                  </div>
+                                ) : (
+                                  <div className="whitespace-pre-wrap">{message.content}</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                
+                  {/* 加载指示器 */}
+                  {isLoading && (
+                    <div className="flex gap-3 justify-start">
+                      <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-white shadow-md">
+                        <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-500 text-white font-semibold text-sm">
                           <Bot className="h-4 w-4" />
                         </AvatarFallback>
                       </Avatar>
-                    )}
+                      <div className="bg-gradient-to-br from-white via-gray-50/50 to-white border border-gray-200/60 rounded-2xl px-4 py-3 shadow-md ring-1 ring-gray-100/50">
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                          <span className="font-medium">AI正在思考中...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+              
+              {/* 输入区域 - 固定在底部 */}
+              <div className="relative flex-shrink-0 p-2 sm:p-3 bg-gradient-to-r from-white/95 via-white/90 to-white/95 backdrop-blur-md border-t border-white/40 z-10">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-purple-500/5"></div>
+                <div className="relative space-y-2 z-10">
+                  {error && (
+                    <div className="mb-3 p-3 bg-gradient-to-r from-red-50/80 via-red-50/80 to-red-50/80 backdrop-blur-sm border border-red-200/60 rounded-xl shadow-sm">
+                      <div className="flex items-center gap-2 text-red-700">
+                        <AlertCircle className="h-4 w-4" />
+                        <span className="text-sm font-medium">{error}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <Input
+                        ref={inputRef}
+                        value={inputMessage}
+                        onChange={(e) => setInputMessage(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder="输入你的问题...（按Enter发送）"
+                        disabled={isLoading}
+                        className="min-h-[50px] border border-white/50 bg-white/80 backdrop-blur-sm rounded-xl focus:border-blue-400/60 focus:ring-2 focus:ring-blue-400/20 transition-all duration-200 text-sm shadow-sm placeholder:text-gray-400 w-full"
+                      />
+                    </div>
                     
-                    <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                        message.role === 'user'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-100 text-gray-900'
-                      }`}
+                    <Button 
+                      onClick={handleSendMessage} 
+                      disabled={!inputMessage.trim() || isLoading}
+                      className="h-12 w-12 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 border-0 shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 ring-1 ring-white/30"
                     >
-                      <div className="break-words">
-                        {message.role === 'assistant' ? (
-                          <div className="prose prose-sm max-w-none">
-                            <ReactMarkdown 
-                              remarkPlugins={[remarkGfm]}
-                              components={{
-                                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                                code: ({ children }) => (
-                                  <code className="bg-gray-200 text-gray-800 px-1 py-0.5 rounded text-sm">
-                                    {children}
-                                  </code>
-                                ),
-                                pre: ({ children }) => (
-                                  <pre className="bg-gray-800 text-gray-100 p-3 rounded-lg overflow-x-auto my-2">
-                                    {children}
-                                  </pre>
-                                ),
-                                ul: ({ children }) => <ul className="list-disc list-inside mb-2">{children}</ul>,
-                                ol: ({ children }) => <ol className="list-decimal list-inside mb-2">{children}</ol>,
-                                li: ({ children }) => <li className="mb-1">{children}</li>,
-                                h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
-                                h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
-                                h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
-                                blockquote: ({ children }) => (
-                                  <blockquote className="border-l-4 border-gray-300 pl-3 italic my-2">
-                                    {children}
-                                  </blockquote>
-                                ),
-                              }}
-                            >
-                              {message.content}
-                            </ReactMarkdown>
-                          </div>
-                        ) : (
-                          <div className="whitespace-pre-wrap">{message.content}</div>
-                        )}
-                      </div>
-                      <div
-                        className={`text-xs mt-1 opacity-70 ${
-                          message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
-                        }`}
-                      >
-                        {new Date(message.timestamp).toLocaleTimeString()}
-                      </div>
-                    </div>
-                    
-                    {message.role === 'user' && (
-                      <Avatar className="h-8 w-8 flex-shrink-0">
-                        <AvatarFallback className="bg-green-100 text-green-600">
-                          <User className="h-4 w-4" />
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                  </div>
-                ))}
-                
-                {/* 加载指示器 */}
-                {isLoading && (
-                  <div className="flex gap-3 justify-start">
-                    <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarFallback className="bg-blue-100 text-blue-600">
-                        <Bot className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="bg-gray-100 rounded-lg px-4 py-2">
-                      <div className="flex items-center gap-2 text-gray-600">
+                      {isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        AI正在思考中...
-                      </div>
-                    </div>
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
-                )}
-              </div>
-            </ScrollArea>
-            
-            {/* 输入区域 */}
-            <div className="border-t p-4">
-              {error && (
-                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-red-700">
-                    <AlertCircle className="h-4 w-4" />
-                    <span className="text-sm">{error}</span>
+                  
+                  <div className="mt-2 text-xs text-gray-500/80 font-medium flex items-center gap-1">
+                    <Sparkles className="h-3 w-3 text-blue-500" />
+                    提示：你可以询问学习计划、学习方法、课程建议等问题
                   </div>
                 </div>
-              )}
-              
-              <div className="flex gap-2">
-                <Input
-                  ref={inputRef}
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="输入你的问题...（按Enter发送）"
-                  disabled={isLoading}
-                  className="flex-1"
-                />
-                <Button 
-                  onClick={handleSendMessage} 
-                  disabled={!inputMessage.trim() || isLoading}
-                  size="icon"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              
-              <div className="mt-2 text-xs text-gray-500">
-                💡 提示：你可以询问学习计划、学习方法、课程建议等问题
               </div>
             </div>
-          </CardContent>
-        </Card>
+        </div>
       </div>
     </div>
   );

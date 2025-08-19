@@ -66,7 +66,7 @@ export function Navbar() {
   }, [user?.id, user?.coupleId, checkNewMessages])
   
   return (
-    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -103,11 +103,11 @@ export function Navbar() {
           {/* 用户菜单 */}
           <div className="flex items-center space-x-4">
             {isAuthenticated && user ? (
-              <>
-                {/* 天气小组件 */}
-                <WeatherWidget />
-                
-                {/* 情侣状态显示 */}
+                  <>
+                  {/* 天气小组件 */}
+                  <WeatherWidget />
+                  
+                  {/* 情侣状态显示 */}
                 {couple && couple.isComplete && (
                   <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
                     <Users className="h-4 w-4 text-pink-500" />
