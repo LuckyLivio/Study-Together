@@ -23,6 +23,8 @@ import {
   Bot
 } from 'lucide-react'
 import { WeatherWidget } from './weather-widget'
+import { useMessageNotifications } from '@/components/notifications/message-notification'
+import { useEffect, useState } from 'react'
 
 const navigation = [
   { name: '仪表盘', href: '/', icon: Home },
@@ -37,12 +39,31 @@ export function Navbar() {
   const router = useRouter()
   const { config, isLoading } = useSiteConfig()
   const { user, couple, isAuthenticated, logout } = useAuthStore()
+  const { checkNewMessages } = useMessageNotifications()
+  const [unreadCount, setUnreadCount] = useState(0)
   
   const handleLogout = () => {
     logout()
     toast.success('已成功退出登录')
     router.push('/landing')
   }
+
+  // 检查未读留言数量
+  useEffect(() => {
+    if (user?.id && user?.coupleId) {
+      const updateUnreadCount = async () => {
+        const count = await checkNewMessages()
+        setUnreadCount(count)
+      }
+      
+      updateUnreadCount()
+      
+      // 每分钟检查一次
+      const interval = setInterval(updateUnreadCount, 60000)
+      
+      return () => clearInterval(interval)
+    }
+  }, [user?.id, user?.coupleId, checkNewMessages])
   
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -59,14 +80,20 @@ export function Navbar() {
             <div className="hidden md:flex items-center space-x-6">
               {navigation.map((item) => {
                 const Icon = item.icon
+                const isMessageWall = item.href === '/messages'
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="flex items-center space-x-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex items-center space-x-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative"
                   >
                     <Icon className="h-4 w-4" />
                     <span>{item.name}</span>
+                    {isMessageWall && unreadCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
                   </Link>
                 )
               })}

@@ -6,6 +6,7 @@ import { siteConfig } from '@/lib/config'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthGuard } from "@/components/auth/auth-guard"
 import { ThemeWrapper } from '@/components/layout/theme-wrapper'
+import { MessageNotificationProvider } from '@/components/notifications/message-notification'
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,9 +30,11 @@ export default function RootLayout({
       >
         <AuthGuard>
           <ThemeWrapper>
-            <Navbar />
-            {children}
-            <Toaster />
+            <MessageNotificationProvider>
+              <Navbar />
+              {children}
+              <Toaster />
+            </MessageNotificationProvider>
           </ThemeWrapper>
         </AuthGuard>
       </body>

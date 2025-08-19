@@ -126,62 +126,185 @@ export default function CoupleDashboard() {
     }
   }
 
+  // 获取学习统计数据
+  const fetchStudyStats = async () => {
+    try {
+      const response = await fetch('/api/study/stats')
+      if (response.ok) {
+        const data = await response.json()
+        return data
+      }
+    } catch (error) {
+      console.error('获取学习统计失败:', error)
+    }
+    return null
+  }
+
+  // 获取今日学习计划
+  const fetchTodayPlans = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const response = await fetch(`/api/study/plans?date=${today}`)
+      if (response.ok) {
+        const data = await response.json()
+        return data.plans || []
+      }
+    } catch (error) {
+      console.error('获取今日计划失败:', error)
+    }
+    return []
+  }
+
+  // 获取学习目标
+  const fetchStudyGoals = async () => {
+    try {
+      const response = await fetch('/api/study/goals')
+      if (response.ok) {
+        const data = await response.json()
+        return data.goals || []
+      }
+    } catch (error) {
+      console.error('获取学习目标失败:', error)
+    }
+    return []
+  }
+
   // 加载个人学习数据
   const loadPersonalStudyData = async (user: UserInfo) => {
-    // 这里将来会从API获取真实的学习数据
-    // 现在使用模拟数据
-    setCoupleData({
-      user: {
-        todayTasks: 5,
-        completedTasks: 3,
-        studyTime: 120,
-        goalProgress: 65,
-        upcomingDeadline: {
-          title: '数学期末考试',
-          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        },
-        currentPlan: {
-          title: '高等数学复习计划',
-          progress: 45
+    try {
+      const [statsData, todayPlans, goals] = await Promise.all([
+        fetchStudyStats(),
+        fetchTodayPlans(),
+        fetchStudyGoals()
+      ])
+
+      if (statsData) {
+        const stats = statsData.stats
+        
+        // 计算今日任务数据
+        const todayTasks = todayPlans.reduce((total: number, plan: any) => total + plan.tasks.length, 0)
+        const completedTasks = todayPlans.reduce((total: number, plan: any) => 
+          total + plan.tasks.filter((task: any) => task.isCompleted).length, 0)
+        
+        // 获取最近的目标和计划
+        const upcomingGoal = goals.find((goal: any) => new Date(goal.targetDate) > new Date())
+        const currentPlan = todayPlans.length > 0 ? todayPlans[0] : null
+        
+        // 计算目标进度
+        let goalProgress = 0
+        if (stats.weeklyGoal > 0) {
+          goalProgress = Math.min(100, (stats.weeklyProgress / stats.weeklyGoal) * 100)
         }
+        
+        setCoupleData({
+          user: {
+            todayTasks,
+            completedTasks,
+            studyTime: stats.totalStudyTime,
+            goalProgress,
+            upcomingDeadline: upcomingGoal ? {
+              title: upcomingGoal.title,
+              date: new Date(upcomingGoal.targetDate)
+            } : undefined,
+            currentPlan: currentPlan ? {
+              title: currentPlan.title,
+              progress: currentPlan.tasks.length > 0 ? 
+                (currentPlan.tasks.filter((task: any) => task.isCompleted).length / currentPlan.tasks.length) * 100 : 0
+            } : undefined
+          }
+        })
       }
-    })
+    } catch (error) {
+      console.error('加载个人学习数据失败:', error)
+      // 使用默认数据
+      setCoupleData({
+        user: {
+          todayTasks: 0,
+          completedTasks: 0,
+          studyTime: 0,
+          goalProgress: 0
+        }
+      })
+    }
   }
 
   // 加载情侣学习数据
   const loadCoupleStudyData = async (user: UserInfo, couple: CoupleInfo) => {
-    // 这里将来会从API获取真实的情侣学习数据
-    // 现在使用模拟数据
-    setCoupleData({
-      user: {
-        todayTasks: 5,
-        completedTasks: 3,
-        studyTime: 120,
-        goalProgress: 65,
-        upcomingDeadline: {
-          title: '数学期末考试',
-          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        },
-        currentPlan: {
-          title: '高等数学复习计划',
-          progress: 45
+    try {
+      const [statsData, todayPlans, goals] = await Promise.all([
+        fetchStudyStats(),
+        fetchTodayPlans(),
+        fetchStudyGoals()
+      ])
+
+      if (statsData) {
+        const myStats = statsData.stats
+        const partnerStats = statsData.partnerStats
+        
+        // 计算我的今日任务数据
+        const myTodayTasks = todayPlans.reduce((total: number, plan: any) => total + plan.tasks.length, 0)
+        const myCompletedTasks = todayPlans.reduce((total: number, plan: any) => 
+          total + plan.tasks.filter((task: any) => task.isCompleted).length, 0)
+        
+        // 获取我的最近目标和计划
+        const myUpcomingGoal = goals.find((goal: any) => new Date(goal.targetDate) > new Date())
+        const myCurrentPlan = todayPlans.length > 0 ? todayPlans[0] : null
+        
+        // 计算我的目标进度
+        let myGoalProgress = 0
+        if (myStats.weeklyGoal > 0) {
+          myGoalProgress = Math.min(100, (myStats.weeklyProgress / myStats.weeklyGoal) * 100)
         }
-      },
-      partner: {
-        todayTasks: 4,
-        completedTasks: 4,
-        studyTime: 180,
-        goalProgress: 80,
-        upcomingDeadline: {
-          title: '英语四级考试',
-          date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
-        },
-        currentPlan: {
-          title: '英语词汇强化训练',
-          progress: 72
+        
+        const userData: DashboardData = {
+          todayTasks: myTodayTasks,
+          completedTasks: myCompletedTasks,
+          studyTime: myStats.totalStudyTime,
+          goalProgress: myGoalProgress,
+          upcomingDeadline: myUpcomingGoal ? {
+            title: myUpcomingGoal.title,
+            date: new Date(myUpcomingGoal.targetDate)
+          } : undefined,
+          currentPlan: myCurrentPlan ? {
+            title: myCurrentPlan.title,
+            progress: myCurrentPlan.tasks.length > 0 ? 
+              (myCurrentPlan.tasks.filter((task: any) => task.isCompleted).length / myCurrentPlan.tasks.length) * 100 : 0
+          } : undefined
         }
+        
+        let partnerData: DashboardData | undefined
+        if (partnerStats) {
+          // 计算伴侣的目标进度
+          let partnerGoalProgress = 0
+          if (partnerStats.stats.weeklyGoal > 0) {
+            partnerGoalProgress = Math.min(100, (partnerStats.stats.weeklyProgress / partnerStats.stats.weeklyGoal) * 100)
+          }
+          
+          partnerData = {
+            todayTasks: 0, // 暂时无法获取伴侣的今日任务，可以后续扩展API
+            completedTasks: partnerStats.stats.completedTasks,
+            studyTime: partnerStats.stats.totalStudyTime,
+            goalProgress: partnerGoalProgress
+          }
+        }
+        
+        setCoupleData({
+          user: userData,
+          partner: partnerData
+        })
       }
-    })
+    } catch (error) {
+      console.error('加载情侣学习数据失败:', error)
+      // 使用默认数据
+      setCoupleData({
+        user: {
+          todayTasks: 0,
+          completedTasks: 0,
+          studyTime: 0,
+          goalProgress: 0
+        }
+      })
+    }
   }
 
   // 初始加载和定时刷新
