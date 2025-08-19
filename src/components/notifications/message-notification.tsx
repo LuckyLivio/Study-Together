@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/lib/auth-store'
 import { MessageCircle, Heart, Gift } from 'lucide-react'
@@ -17,6 +18,7 @@ interface MessageNotification {
 
 export function MessageNotificationProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore()
+  const router = useRouter()
   const [lastChecked, setLastChecked] = useState<Date>(new Date())
   const [isPolling, setIsPolling] = useState(false)
 
@@ -94,8 +96,8 @@ export function MessageNotificationProvider({ children }: { children: React.Reac
       action: {
         label: '查看',
         onClick: () => {
-          // 跳转到留言墙页面
-          window.location.href = '/messages'
+          // 使用router导航，防止页面滚动
+          router.push('/messages', { scroll: false })
         }
       },
       className: 'cursor-pointer'

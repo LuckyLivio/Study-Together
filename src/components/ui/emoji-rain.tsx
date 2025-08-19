@@ -99,9 +99,10 @@ export default function EmojiRain({ isActive, surpriseType, duration = 3000, onC
       if (elapsed < duration * 0.7) {
         setParticles(prevParticles => {
           const newParticles = [];
+          const baseTime = Date.now();
           for (let i = 0; i < 3; i++) {
             newParticles.push({
-              id: Date.now() + i,
+              id: baseTime * 1000 + Math.random() * 1000 + i,
               emoji: emojis[Math.floor(Math.random() * emojis.length)],
               x: Math.random() * window.innerWidth,
               y: -50,
@@ -163,7 +164,7 @@ export function useEmojiRain() {
   const [activeEffect, setActiveEffect] = useState<{ type: string; id: string } | null>(null);
   
   const triggerEffect = (surpriseType: string, messageId?: string) => {
-    setActiveEffect({ type: surpriseType, id: messageId || Date.now().toString() });
+    setActiveEffect({ type: surpriseType, id: messageId || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` });
   };
   
   const stopEffect = () => {

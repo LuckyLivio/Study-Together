@@ -125,7 +125,7 @@ export function AdminAuth({ onAuthenticated }: AdminAuthProps) {
       }
       
       const newRecord: LoginAttempt = {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         ip,
         userAgent: navigator.userAgent || '未知浏览器',
         timestamp: new Date().toLocaleString('zh-CN'),
