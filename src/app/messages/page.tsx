@@ -156,23 +156,25 @@ export default function MessagesPage() {
 
   const handleNoCoupleRelationship = () => {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 p-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <div className="text-6xl mb-4">💕</div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-4">情侣留言墙</h1>
-            <p className="text-gray-600 mb-6">
-              您还没有建立情侣关系，无法使用留言墙功能。
-            </p>
-            <p className="text-sm text-gray-500 mb-6">
-              请先在情侣页面建立情侣关系，然后再来享受甜蜜的留言功能吧！
-            </p>
-            <button
-              onClick={() => router.push('/couple')}
-              className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-2 rounded-lg transition-colors"
-            >
-              去建立情侣关系
-            </button>
+      <div className="fixed inset-0 top-16 overflow-hidden">
+        <div className="h-full flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50 p-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+              <div className="text-6xl mb-4">💕</div>
+              <h1 className="text-2xl font-bold text-gray-800 mb-4">情侣留言墙</h1>
+              <p className="text-gray-600 mb-6">
+                您还没有建立情侣关系，无法使用留言墙功能。
+              </p>
+              <p className="text-sm text-gray-500 mb-6">
+                请先在情侣页面建立情侣关系，然后再来享受甜蜜的留言功能吧！
+              </p>
+              <button
+                onClick={() => router.push('/couple')}
+                className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                去建立情侣关系
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -339,9 +341,9 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-pink-50 via-purple-50 via-indigo-50 to-blue-50 pt-4 sm:pt-6 md:pt-8 pb-2 px-2 sm:px-3 md:px-4">
-      <div className="container mx-auto max-w-4xl flex justify-center">
-        <Card className="w-full h-[calc(100vh-6rem)] sm:h-[calc(100vh-8rem)] md:h-[calc(100vh-10rem)] max-h-[700px] flex flex-col backdrop-blur-md bg-white/90 border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] rounded-2xl sm:rounded-3xl overflow-hidden relative">
+    <div className="fixed inset-0 top-16 overflow-hidden bg-gradient-to-br from-pink-50 via-purple-50 via-indigo-50 to-blue-50 p-4">
+      <div className="container mx-auto max-w-4xl h-full flex justify-center">
+        <Card className="w-full h-full flex flex-col backdrop-blur-md bg-white/90 border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] rounded-2xl sm:rounded-3xl overflow-hidden relative">
           {/* 装饰性背景元素 */}
           <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 via-purple-500/5 to-indigo-500/5 pointer-events-none"></div>
           <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-pink-300/20 to-transparent rounded-full blur-2xl pointer-events-none"></div>

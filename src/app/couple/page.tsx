@@ -155,11 +155,13 @@ export default function CouplePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">情侣设置</h1>
-        <p className="text-muted-foreground">管理您的情侣关系和学习空间</p>
-      </div>
+    <div className="fixed inset-0 top-16 overflow-hidden">
+      <div className="h-full overflow-y-auto p-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2">情侣设置</h1>
+            <p className="text-muted-foreground">管理您的情侣关系和学习空间</p>
+          </div>
 
       {message && (
         <Alert className={`mb-6 ${messageType === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-800'}`}>
@@ -432,6 +434,8 @@ export default function CouplePage() {
             </Card>
           </div>
         )}
+          </div>
+        </div>
       </div>
     </div>
   )
