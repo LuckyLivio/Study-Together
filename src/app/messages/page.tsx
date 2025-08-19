@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,6 +73,7 @@ const SURPRISE_TYPES = [
 ];
 
 export default function MessagesPage() {
+  const router = useRouter();
   const [messages, setMessages] = useState<MessageWallPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -84,6 +86,17 @@ export default function MessagesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { activeEffect, triggerEffect, stopEffect } = useEmojiRain();
+
+  // 禁用页面滚动
+  useEffect(() => {
+    // 禁用body滚动
+    document.body.style.overflow = 'hidden';
+    
+    // 组件卸载时恢复滚动
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   // 获取当前用户ID
   useEffect(() => {
@@ -155,7 +168,7 @@ export default function MessagesPage() {
               请先在情侣页面建立情侣关系，然后再来享受甜蜜的留言功能吧！
             </p>
             <button
-              onClick={() => window.location.href = '/couple'}
+              onClick={() => router.push('/couple')}
               className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-2 rounded-lg transition-colors"
             >
               去建立情侣关系
@@ -168,7 +181,14 @@ export default function MessagesPage() {
 
   // 滚动到底部
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      // 使用更精确的滚动控制，只在ScrollArea内部滚动
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'end',
+        inline: 'nearest'
+      });
+    }
   };
 
   // 移除自动滚动，改为手动控制
@@ -319,15 +339,15 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 via-indigo-50 to-blue-50 p-2 sm:p-4 md:p-6">
-      <div className="container mx-auto max-w-5xl h-screen flex items-center justify-center">
-        <Card className="w-full h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)] md:h-[calc(100vh-3rem)] max-h-[900px] flex flex-col backdrop-blur-md bg-white/90 border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] rounded-2xl sm:rounded-3xl overflow-hidden relative">
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-pink-50 via-purple-50 via-indigo-50 to-blue-50 pt-4 sm:pt-6 md:pt-8 pb-2 px-2 sm:px-3 md:px-4">
+      <div className="container mx-auto max-w-4xl flex justify-center">
+        <Card className="w-full h-[calc(100vh-6rem)] sm:h-[calc(100vh-8rem)] md:h-[calc(100vh-10rem)] max-h-[700px] flex flex-col backdrop-blur-md bg-white/90 border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] rounded-2xl sm:rounded-3xl overflow-hidden relative">
           {/* 装饰性背景元素 */}
           <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 via-purple-500/5 to-indigo-500/5 pointer-events-none"></div>
           <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-pink-300/20 to-transparent rounded-full blur-2xl pointer-events-none"></div>
           <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-purple-300/20 to-transparent rounded-full blur-2xl pointer-events-none"></div>
         {/* 优化的标题栏 */}
-        <div className="relative flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-pink-500/8 via-purple-500/8 to-indigo-500/8 backdrop-blur-sm border-b border-white/30 flex-shrink-0 z-10">
+        <div className="relative flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-pink-500/8 via-purple-500/8 to-indigo-500/8 backdrop-blur-sm border-b border-white/30 flex-shrink-0 z-10">
           <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-sm"></div>
           {/* 左侧标题 */}
           <div className="relative flex items-center gap-2 sm:gap-3 z-10">
@@ -366,12 +386,12 @@ export default function MessagesPage() {
         
         <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
           {/* 留言列表 */}
-          <ScrollArea className="flex-1 pr-2" style={{height: 'calc(100vh - 16rem)'}}>
-            <div className="space-y-4 py-4 pl-6 pr-4">
+          <ScrollArea className="flex-1 pr-2" style={{height: 'calc(100vh - 12rem)'}}>
+            <div className="space-y-3 py-3 pl-4 pr-3">
               {messages.length === 0 ? (
-                <div className="text-center py-12">
-                  <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">还没有留言，快来写下第一条留言吧！</p>
+                <div className="text-center py-8">
+                  <MessageCircle className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm">还没有留言，快来写下第一条留言吧！</p>
                 </div>
               ) : (
                 messages.slice().reverse().map((message) => {
@@ -429,7 +449,7 @@ export default function MessagesPage() {
                             <div className="mt-3 space-y-2">
                               {message.attachments.map((attachment, index) => (
                                 <img
-                                  key={index}
+                                  key={`${message.id}-attachment-${index}-${attachment.split('/').pop()}`}
                                   src={attachment}
                                   alt="附件"
                                   className="max-w-full h-auto rounded-xl shadow-sm border border-white/20"
@@ -463,7 +483,7 @@ export default function MessagesPage() {
                         <div className="flex gap-1 mt-3">
                           {EMOJI_LIST.slice(0, 6).map((emoji) => (
                             <Button
-                              key={emoji}
+                              key={`${message.id}-emoji-${emoji}`}
                               variant="ghost"
                               size="sm"
                               onClick={() => addReaction(message.id, emoji)}
@@ -485,14 +505,14 @@ export default function MessagesPage() {
         </CardContent>
         
         {/* 发送区域 - 固定在底部 */}
-        <div className="relative flex-shrink-0 p-3 sm:p-4 bg-gradient-to-r from-white/95 via-white/90 to-white/95 backdrop-blur-md border-t border-white/40 z-10">
+        <div className="relative flex-shrink-0 p-2 sm:p-3 bg-gradient-to-r from-white/95 via-white/90 to-white/95 backdrop-blur-md border-t border-white/40 z-10">
           <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 via-purple-500/5 to-indigo-500/5"></div>
-          <div className="relative space-y-3 z-10">
+          <div className="relative space-y-2 z-10">
             {/* 选中的文件预览 */}
             {selectedFiles.length > 0 && (
               <div className="flex flex-wrap gap-2 p-3 bg-gradient-to-r from-pink-50/80 via-purple-50/80 to-indigo-50/80 backdrop-blur-sm rounded-xl border border-white/50 shadow-sm">
                 {selectedFiles.map((file, index) => (
-                  <div key={index} className="relative group">
+                  <div key={`file-preview-${index}-${file.name}-${file.size}-${file.lastModified || crypto.randomUUID()}`} className="relative group">
                     <img
                       src={URL.createObjectURL(file)}
                       alt={file.name}
@@ -517,9 +537,9 @@ export default function MessagesPage() {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="写下你想说的话..."
-                  className="min-h-[60px] max-h-[120px] resize-none border border-white/50 bg-white/80 backdrop-blur-sm rounded-xl focus:border-pink-400/60 focus:ring-2 focus:ring-pink-400/20 transition-all duration-200 text-sm shadow-sm placeholder:text-gray-400"
+                  className="min-h-[50px] max-h-[100px] resize-none border border-white/50 bg-white/80 backdrop-blur-sm rounded-xl focus:border-pink-400/60 focus:ring-2 focus:ring-pink-400/20 transition-all duration-200 text-sm shadow-sm placeholder:text-gray-400 w-full"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                       e.preventDefault();
                       sendMessage();
                     }
