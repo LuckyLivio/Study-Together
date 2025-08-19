@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import jwt from 'jsonwebtoken'
-import { PrismaClient } from '@/generated/prisma'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
 // 数据库操作函数

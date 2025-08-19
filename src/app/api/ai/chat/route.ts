@@ -9,10 +9,9 @@ import {
   DeepSeekResponse,
   SYSTEM_PROMPTS
 } from '@/lib/ai-config';
-import { PrismaClient } from '@/generated/prisma';
+import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // 验证JWT token的辅助函数

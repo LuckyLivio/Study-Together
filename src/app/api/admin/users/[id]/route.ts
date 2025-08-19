@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, Role, UserStatus } from '@/generated/prisma';
-
-const prisma = new PrismaClient();
+import { Role, UserStatus } from '@/generated/prisma';
+import { prisma } from '@/lib/prisma';
+import { verifyAdminAuth } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
 
 // GET /api/admin/users/[id] - 获取单个用户
 export async function GET(

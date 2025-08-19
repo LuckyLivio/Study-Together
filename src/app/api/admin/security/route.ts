@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@/generated/prisma'
+import { prisma } from '@/lib/prisma'
 import { verifyAdminAuth } from '@/lib/auth'
-
-const prisma = new PrismaClient()
 
 // 获取安全设置
 export async function GET(request: NextRequest) {
@@ -14,11 +12,15 @@ export async function GET(request: NextRequest) {
     }
 
     // 获取安全设置（如果不存在则创建默认设置）
-    let securitySettings = await prisma.securitySettings.findFirst()
+    let securitySettings = await prisma.securitySettings.findUnique({
+      where: { id: 'default' }
+    })
     
     if (!securitySettings) {
       securitySettings = await prisma.securitySettings.create({
-        data: {}
+        data: {
+          id: 'default'
+        }
       })
     }
 
@@ -133,10 +135,11 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // 验证IP地址格式
-    if (settings.allowedIPs && Array.isArray(settings.allowedIPs)) {
+    // 验证IP地址格式 (SQLite使用字符串存储，逗号分隔)
+    if (settings.allowedIPs && typeof settings.allowedIPs === 'string' && settings.allowedIPs.trim()) {
       const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
-      for (const ip of settings.allowedIPs) {
+      const ips = settings.allowedIPs.split(',').map((ip: string) => ip.trim()).filter((ip: string) => ip)
+      for (const ip of ips) {
         if (!ipRegex.test(ip)) {
           return NextResponse.json(
             { error: `无效的IP地址格式: ${ip}` },
@@ -154,7 +157,7 @@ export async function PUT(request: NextRequest) {
         lockoutDuration: settings.lockoutDuration,
         sessionTimeout: settings.sessionTimeout,
         requireTwoFactor: settings.requireTwoFactor,
-        allowedIPs: settings.allowedIPs || [],
+        allowedIPs: typeof settings.allowedIPs === 'string' ? settings.allowedIPs : '',
         passwordMinLength: settings.passwordPolicy.minLength,
         passwordRequireUppercase: settings.passwordPolicy.requireUppercase,
         passwordRequireLowercase: settings.passwordPolicy.requireLowercase,
@@ -168,7 +171,7 @@ export async function PUT(request: NextRequest) {
         lockoutDuration: settings.lockoutDuration,
         sessionTimeout: settings.sessionTimeout,
         requireTwoFactor: settings.requireTwoFactor,
-        allowedIPs: settings.allowedIPs || [],
+        allowedIPs: typeof settings.allowedIPs === 'string' ? settings.allowedIPs : '',
         passwordMinLength: settings.passwordPolicy.minLength,
         passwordRequireUppercase: settings.passwordPolicy.requireUppercase,
         passwordRequireLowercase: settings.passwordPolicy.requireLowercase,

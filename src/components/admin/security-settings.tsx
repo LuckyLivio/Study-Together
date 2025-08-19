@@ -26,7 +26,7 @@ interface SecuritySettings {
   lockoutDuration: number // 分钟
   sessionTimeout: number // 分钟
   requireTwoFactor: boolean
-  allowedIPs: string[]
+  allowedIPs: string // SQLite使用字符串存储，逗号分隔
   passwordPolicy: {
     minLength: number
     requireUppercase: boolean
@@ -52,13 +52,13 @@ export function SecuritySettings() {
     lockoutDuration: 15,
     sessionTimeout: 60,
     requireTwoFactor: false,
-    allowedIPs: [],
+    allowedIPs: '',
     passwordPolicy: {
       minLength: 8,
       requireUppercase: true,
       requireLowercase: true,
       requireNumbers: true,
-      requireSpecialChars: true,
+      requireSpecialChars: false,
       maxAge: 90
     }
   })
@@ -159,19 +159,25 @@ export function SecuritySettings() {
   }
 
   const addAllowedIP = () => {
-    if (newIP && !settings.allowedIPs.includes(newIP)) {
-      setSettings(prev => ({
-        ...prev,
-        allowedIPs: [...prev.allowedIPs, newIP]
-      }))
-      setNewIP('')
+    if (newIP) {
+      const currentIPs = settings.allowedIPs ? settings.allowedIPs.split(',').map(ip => ip.trim()).filter(ip => ip) : []
+      if (!currentIPs.includes(newIP)) {
+        const newIPs = [...currentIPs, newIP]
+        setSettings(prev => ({
+          ...prev,
+          allowedIPs: newIPs.join(', ')
+        }))
+        setNewIP('')
+      }
     }
   }
 
   const removeAllowedIP = (ip: string) => {
+    const currentIPs = settings.allowedIPs ? settings.allowedIPs.split(',').map(ip => ip.trim()).filter(ip => ip) : []
+    const newIPs = currentIPs.filter(allowedIP => allowedIP !== ip)
     setSettings(prev => ({
       ...prev,
-      allowedIPs: prev.allowedIPs.filter(allowedIP => allowedIP !== ip)
+      allowedIPs: newIPs.join(', ')
     }))
   }
 
@@ -357,10 +363,8 @@ export function SecuritySettings() {
           </div>
           
           <div className="space-y-2">
-            {settings.allowedIPs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">暂无IP白名单，所有IP都可以访问</p>
-            ) : (
-              settings.allowedIPs.map((ip, index) => (
+            {settings.allowedIPs && settings.allowedIPs.trim() ? (
+              settings.allowedIPs.split(',').map(ip => ip.trim()).filter(ip => ip).map((ip, index) => (
                 <div key={index} className="flex items-center justify-between p-2 border rounded">
                   <span className="font-mono text-sm">{ip}</span>
                   <Button
@@ -372,6 +376,8 @@ export function SecuritySettings() {
                   </Button>
                 </div>
               ))
+            ) : (
+              <p className="text-sm text-muted-foreground">暂无IP白名单，所有IP都可以访问</p>
             )}
           </div>
         </CardContent>

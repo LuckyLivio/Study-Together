@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@/generated/prisma'
+import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
-
-const prisma = new PrismaClient()
 
 // 获取用户的所有聊天对话
 export async function GET(request: NextRequest) {

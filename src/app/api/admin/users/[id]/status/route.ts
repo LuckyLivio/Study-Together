@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, UserStatus } from '@/generated/prisma';
-
-const prisma = new PrismaClient();
+import { UserStatus } from '@/generated/prisma';
+import { prisma } from '@/lib/prisma';
+import { verifyAdminAuth } from '@/lib/auth';
 
 // PATCH /api/admin/users/[id]/status - 更新用户状态（封禁/解封）
 export async function PATCH(
