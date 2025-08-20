@@ -20,7 +20,9 @@ import {
   Heart,
   LogOut,
   Users,
-  Bot
+  Bot,
+  Menu,
+  X
 } from 'lucide-react'
 import { WeatherWidget } from './weather-widget'
 import { useMessageNotifications } from '@/components/notifications/message-notification'
@@ -41,6 +43,7 @@ export function Navbar() {
   const { user, couple, isAuthenticated, logout } = useAuthStore()
   const { checkNewMessages } = useMessageNotifications()
   const [unreadCount, setUnreadCount] = useState(0)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
   const handleLogout = () => {
     logout()
@@ -75,9 +78,9 @@ export function Navbar() {
             <span className="font-bold text-xl">{isLoading ? siteConfig.name : config.name}</span>
           </Link>
 
-          {/* 导航菜单 - 只有登录用户才显示 */}
+          {/* 桌面端导航菜单 */}
           {isAuthenticated && (
-            <div className="hidden md:flex items-center space-x-6">
+            <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
               {navigation.map((item) => {
                 const Icon = item.icon
                 const isMessageWall = item.href === '/messages'
@@ -85,10 +88,10 @@ export function Navbar() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="flex items-center space-x-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative"
+                    className="flex items-center space-x-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative whitespace-nowrap"
                   >
-                    <Icon className="h-4 w-4" />
-                    <span>{item.name}</span>
+                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <span className="hidden lg:inline">{item.name}</span>
                     {isMessageWall && unreadCount > 0 && (
                       <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
                         {unreadCount > 99 ? '99+' : unreadCount}
@@ -97,6 +100,24 @@ export function Navbar() {
                   </Link>
                 )
               })}
+            </div>
+          )}
+
+          {/* 移动端菜单按钮 */}
+          {isAuthenticated && (
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </Button>
             </div>
           )}
 
@@ -109,9 +130,14 @@ export function Navbar() {
                   
                   {/* 情侣状态显示 */}
                 {couple && couple.isComplete && (
-                  <div className="hidden sm:flex items-center space-x-2 text-sm text-muted-foreground">
-                    <Users className="h-4 w-4 text-pink-500" />
-                    <span>{couple.person1Name} & {couple.person2Name}</span>
+                  <div className="hidden lg:flex items-center space-x-2 text-sm text-muted-foreground max-w-[200px]">
+                    <Users className="h-4 w-4 text-pink-500 flex-shrink-0" />
+                    <span className="truncate">
+                      {couple.person1Name && couple.person2Name 
+                        ? `${couple.person1Name.length > 6 ? couple.person1Name.slice(0, 6) + '...' : couple.person1Name} & ${couple.person2Name.length > 6 ? couple.person2Name.slice(0, 6) + '...' : couple.person2Name}`
+                        : '情侣模式'
+                      }
+                    </span>
                   </div>
                 )}
                 
@@ -184,6 +210,51 @@ export function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* 移动端导航菜单 */}
+      {isAuthenticated && isMobileMenuOpen && (
+        <div className="md:hidden border-t bg-background/95 backdrop-blur">
+          <div className="container mx-auto px-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              {navigation.map((item) => {
+                const Icon = item.icon
+                const isMessageWall = item.href === '/messages'
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center space-x-3 p-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors relative"
+                  >
+                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    <span>{item.name}</span>
+                    {isMessageWall && unreadCount > 0 && (
+                      <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px] ml-auto">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+            
+            {/* 移动端情侣状态显示 */}
+            {couple && couple.isComplete && (
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <Users className="h-4 w-4 text-pink-500 flex-shrink-0" />
+                  <span className="truncate">
+                    {couple.person1Name && couple.person2Name 
+                      ? `${couple.person1Name} & ${couple.person2Name}`
+                      : '情侣模式'
+                    }
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   )
 }
