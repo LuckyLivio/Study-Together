@@ -32,8 +32,36 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'Message not found' }, { status: 404 });
     }
 
-    // 检查用户是否有权限添加反应（必须是情侣中的一员）
-    if (message.senderId !== userId && message.receiverId !== userId) {
+    // 检查用户是否有权限添加反应
+    // 对于PRIVATE留言：必须是发送者或接收者
+    // 对于PUBLIC留言：必须是情侣中的一员
+    if (message.visibility === 'PRIVATE') {
+      if (message.senderId !== userId && message.receiverId !== userId) {
+        return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+      }
+    } else if (message.visibility === 'PUBLIC') {
+      // 获取用户的情侣关系
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          couple: {
+            include: {
+              users: true
+            }
+          }
+        }
+      });
+      
+      if (!user?.couple || !user.couple.isComplete) {
+        return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+      }
+      
+      // 检查是否是情侣中的一员
+      const isCoupleMember = user.couple.users.some(u => u.id === userId);
+      if (!isCoupleMember) {
+        return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+      }
+    } else {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
 
@@ -94,7 +122,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     // 检查留言是否存在且用户有权限查看
     const message = await prisma.messageWallPost.findUnique({
-      where: { id: messageId }
+      where: { id: messageId },
+      include: {
+        sender: true,
+        receiver: true
+      }
     });
 
     if (!message) {
@@ -102,7 +134,35 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     // 检查用户是否有权限查看反应
-    if (message.senderId !== userId && message.receiverId !== userId) {
+    // 对于PRIVATE留言：必须是发送者或接收者
+    // 对于PUBLIC留言：必须是情侣中的一员
+    if (message.visibility === 'PRIVATE') {
+      if (message.senderId !== userId && message.receiverId !== userId) {
+        return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+      }
+    } else if (message.visibility === 'PUBLIC') {
+      // 获取用户的情侣关系
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          couple: {
+            include: {
+              users: true
+            }
+          }
+        }
+      });
+      
+      if (!user?.couple || !user.couple.isComplete) {
+        return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+      }
+      
+      // 检查是否是情侣中的一员
+      const isCoupleMember = user.couple.users.some(u => u.id === userId);
+      if (!isCoupleMember) {
+        return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+      }
+    } else {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
 
