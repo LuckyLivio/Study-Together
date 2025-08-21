@@ -7,7 +7,7 @@ interface SecuritySettings {
   lockoutDuration: number
   sessionTimeout: number
   requireTwoFactor: boolean
-  allowedIPs: string[]
+  allowedIPs: string // SQLite compatibility - stored as comma-separated string
   passwordMinLength: number
   passwordRequireUppercase: boolean
   passwordRequireLowercase: boolean
@@ -189,12 +189,13 @@ export async function checkIPWhitelist(request: NextRequest): Promise<boolean> {
   const settings = await getSecuritySettings()
   
   // 如果没有设置IP白名单，允许所有IP
-  if (!settings.allowedIPs || settings.allowedIPs.length === 0) {
+  if (!settings.allowedIPs || settings.allowedIPs.trim() === '') {
     return true
   }
   
   const clientIP = getClientIP(request)
-  return settings.allowedIPs.includes(clientIP)
+  const allowedIPList = settings.allowedIPs.split(',').map(ip => ip.trim()).filter(ip => ip)
+  return allowedIPList.includes(clientIP)
 }
 
 // 验证密码策略
