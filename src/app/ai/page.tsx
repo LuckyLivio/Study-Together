@@ -51,14 +51,14 @@ export default function AIAssistantPage() {
         if (messages.length === 0) {
           addMessage({
             role: 'assistant',
-            content: `你好${user?.name ? `, ${user.name}` : ''}！我是你的AI学习助手。我可以帮助你：\n\n📚 制定学习计划\n💡 解答学习问题\n🎯 提供学习建议\n💪 给予学习动力\n👫 情侣学习指导\n\n有什么我可以帮助你的吗？`
+            content: `你好${user?.displayName ? `, ${user.displayName}` : ''}！我是你的AI学习助手。我可以帮助你：\n\n📚 制定学习计划\n💡 解答学习问题\n🎯 提供学习建议\n💪 给予学习动力\n👫 情侣学习指导\n\n有什么我可以帮助你的吗？`
           });
         }
       }, 0);
       
       return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, user?.name, messages.length, addMessage]);
+  }, [isAuthenticated, user?.displayName, messages.length, addMessage]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;

@@ -55,6 +55,11 @@ model User {
   receivedMessages  MessageWallPost[]     @relation("ReceivedMessages")
   messageReactions  MessageReaction[]
   
+  // File relationships
+  files             File[]
+  folders           Folder[]
+  fileCategories    FileCategory[]
+  
   @@map("users")
 }
 
@@ -329,4 +334,113 @@ enum MessageType {
 enum MessageVisibility {
   PRIVATE     // 情侣留言，仅双方可见
   PUBLIC      // 个人留言，所有人可见
+}
+
+// 文件分类模型
+model FileCategory {
+  id          String    @id @default(cuid())
+  name        String    // 分类名称
+  description String?   // 分类描述
+  color       String    @default("#3B82F6") // 分类颜色
+  userId      String    // 分类创建者ID
+  
+  // 时间戳
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 关联关系
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files       File[]
+  
+  @@map("file_categories")
+}
+
+// 文件资料模型
+model File {
+  id          String    @id @default(cuid())
+  userId      String    // 文件上传者ID
+  filename    String    // 原始文件名
+  displayName String    // 显示名称
+  description String?   // 文件描述
+  filePath    String    // 文件存储路径
+  fileSize    Int       // 文件大小（字节）
+  mimeType    String    // 文件MIME类型
+  fileType    FileType  // 文件类型枚举
+  visibility  FileVisibility @default(PRIVATE) // 文件可见性
+  folderId    String?   // 文件夹ID
+  categoryId  String?   // 文件分类ID
+  
+  // 下载统计
+  downloadCount Int     @default(0)
+  
+  // 状态
+  isDeleted   Boolean   @default(false)
+  
+  // 时间戳
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 关联关系
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder      Folder?   @relation(fields: [folderId], references: [id])
+  category    FileCategory? @relation(fields: [categoryId], references: [id])
+  tags        FileTag[]
+  
+  @@map("files")
+}
+
+// 文件夹模型
+model Folder {
+  id          String    @id @default(cuid())
+  name        String    // 文件夹名称
+  description String?   // 文件夹描述
+  color       String?   // 文件夹颜色
+  icon        String?   // 文件夹图标
+  userId      String    // 文件夹创建者ID
+  parentId    String?   // 父文件夹ID（支持层级结构）
+  
+  // 时间戳
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 关联关系
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent      Folder?   @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children    Folder[]  @relation("FolderHierarchy")
+  files       File[]
+  
+  @@map("folders")
+}
+
+// 文件标签模型
+model FileTag {
+  id        String    @id @default(cuid())
+  fileId    String    // 文件ID
+  tag       String    // 标签名称
+  
+  // 时间戳
+  createdAt DateTime  @default(now())
+  
+  // 关联关系
+  file      File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  
+  @@map("file_tags")
+}
+
+// 文件类型枚举
+enum FileType {
+  PDF         // PDF文档
+  WORD        // Word文档
+  EXCEL       // Excel表格
+  POWERPOINT  // PowerPoint演示文稿
+  IMAGE       // 图片
+  TEXT        // 文本文件
+  OTHER       // 其他类型
+}
+
+// 文件可见性枚举
+enum FileVisibility {
+  PRIVATE     // 仅自己可见
+  COUPLE      // 情侣共享
+  PUBLIC      // 公开（暂时保留，未来可能用到）
 }

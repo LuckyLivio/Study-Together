@@ -25,7 +25,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [editForm, setEditForm] = useState({
-    name: user?.name || '',
+    name: user?.displayName || '',
     email: user?.email || '',
     gender: user?.gender || 'MALE',
     bio: user?.bio || ''
@@ -205,7 +205,7 @@ export default function ProfilePage() {
                       placeholder="请输入姓名"
                     />
                   ) : (
-                    <Input id="name" value={user.name} disabled />
+                    <Input id="name" value={user.displayName} disabled />
                   )}
                 </div>
                 <div>
