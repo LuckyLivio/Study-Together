@@ -43,6 +43,9 @@ export async function GET(request: NextRequest) {
 
     if (folderId) {
       where.folderId = folderId;
+    } else {
+      // 如果没有指定文件夹，只显示根目录下的文件（folderId 为 null）
+      where.folderId = null;
     }
 
     if (tag) {
