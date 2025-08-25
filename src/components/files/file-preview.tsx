@@ -56,7 +56,7 @@ export default function FilePreview({ file, isOpen, onClose }: FilePreviewProps)
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div>
-            <h3 className="text-lg font-semibold truncate">{file.displayName}</h3>
+            <h3 className="text-lg font-semibold break-words leading-tight max-w-md">{file.displayName}</h3>
             <p className="text-sm text-gray-500">
               {file.mimeType} • {formatFileSize(file.fileSize)}
             </p>

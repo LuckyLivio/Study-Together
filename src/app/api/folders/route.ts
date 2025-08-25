@@ -13,9 +13,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get('parentId');
 
-    // 构建查询条件
+    // 获取用户的情侣关系
+    const user = await prisma.user.findUnique({
+      where: { id: authResult.userId! },
+      include: { couple: true }
+    });
+
+    // 构建查询条件 - 包括用户自己的文件夹和情侣共享的文件夹
     const where: any = {
-      userId: authResult.userId!,
+      OR: [
+        { userId: authResult.userId! }, // 用户自己的文件夹
+        ...(user?.couple ? [{
+          userId: user.couple.person1Id === authResult.userId! ? user.couple.person2Id : user.couple.person1Id,
+          visibility: 'COUPLE'
+        }] : []) // 情侣的共享文件夹
+      ]
     };
 
     if (parentId) {
@@ -72,15 +84,20 @@ export async function GET(request: NextRequest) {
 // POST /api/folders - 创建新文件夹
 export async function POST(request: NextRequest) {
   try {
+    console.log('POST /api/folders - Starting request');
     const authResult = await verifyUserAuth(request);
+    console.log('Auth result:', authResult);
     if (!authResult.success) {
+      console.log('Auth failed:', authResult.error);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { name, description, color, icon, parentId } = body;
+    console.log('Request body:', body);
+    const { name, description, color, icon, parentId, visibility } = body;
 
     if (!name || name.trim().length === 0) {
+      console.log('Folder name validation failed');
       return NextResponse.json({ error: 'Folder name is required' }, { status: 400 });
     }
 
@@ -118,7 +135,8 @@ export async function POST(request: NextRequest) {
         color: color || '#3b82f6',
         icon: icon || 'folder',
         userId: authResult.userId!,
-        parentId: parentId || null
+        parentId: parentId || null,
+        visibility: visibility || 'PRIVATE'
       },
       include: {
         parent: true,
