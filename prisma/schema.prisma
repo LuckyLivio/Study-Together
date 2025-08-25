@@ -398,6 +398,7 @@ model Folder {
   icon        String?   // 文件夹图标
   userId      String    // 文件夹创建者ID
   parentId    String?   // 父文件夹ID（支持层级结构）
+  visibility  FileVisibility @default(PRIVATE) // 文件夹可见性
   
   // 时间戳
   createdAt   DateTime  @default(now())

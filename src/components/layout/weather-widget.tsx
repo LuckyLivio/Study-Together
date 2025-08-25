@@ -190,7 +190,7 @@ export function WeatherWidget() {
          icon: lives.weather, // 高德API返回的是天气描述，不是图标代码
          location: apiLocationName,
          humidity: parseInt(lives.humidity),
-         windSpeed: parseFloat(lives.windpower.replace('≤', '').replace('级', '')) || 0, // 风力等级转换
+         windSpeed: parseFloat((lives.windpower || '').replace('≤', '').replace('级', '')) || 0, // 风力等级转换
          feelsLike: parseInt(lives.temperature), // 高德API基础版没有体感温度，使用实际温度
          pressure: 1013, // 高德API基础版没有气压数据，使用默认值
          visibility: 10, // 高德API基础版没有能见度数据，使用默认值

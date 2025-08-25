@@ -29,7 +29,8 @@ import {
   Users,
   Lock,
   Home,
-  ChevronRight
+  ChevronRight,
+  Move
 } from 'lucide-react';
 import FilePreview from '@/components/files/file-preview';
 
@@ -70,6 +71,7 @@ interface FolderItem {
   parent?: FolderItem;
   children?: FolderItem[];
   depth?: number;
+  visibility: 'PRIVATE' | 'COUPLE';
   _count: {
     files: number;
     children: number;
@@ -90,15 +92,19 @@ export default function FilesPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderVisibility, setNewFolderVisibility] = useState<'PRIVATE' | 'COUPLE'>('PRIVATE');
   const [editingFolder, setEditingFolder] = useState<FolderItem | null>(null);
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
+  const [movingFile, setMovingFile] = useState<FileItem | null>(null);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [selectedTargetFolder, setSelectedTargetFolder] = useState<string>('');
 
   // 上传表单状态
   const [uploadForm, setUploadForm] = useState({
     file: null as File | null,
     displayName: '',
     description: '',
-    folderId: '',
+    folderId: currentFolder?.id || '',
     visibility: 'PRIVATE' as 'PRIVATE' | 'COUPLE',
     tags: ''
   });
@@ -111,6 +117,14 @@ export default function FilesPage() {
       updateBreadcrumbs();
     }
   }, [user, currentPage, currentFolder, selectedTag, visibility]);
+
+  // 当当前文件夹改变时，更新上传表单的默认文件夹
+  useEffect(() => {
+    setUploadForm(prev => ({
+      ...prev,
+      folderId: currentFolder?.id || ''
+    }));
+  }, [currentFolder]);
 
   const fetchFiles = async () => {
     try {
@@ -249,7 +263,8 @@ export default function FilesPage() {
         body: JSON.stringify({
           name: newFolderName,
           parentId: currentFolder?.id,
-          color: '#3B82F6'
+          color: '#3B82F6',
+          visibility: newFolderVisibility
         })
       });
       
@@ -258,6 +273,7 @@ export default function FilesPage() {
       if (response.ok) {
         toast.success('文件夹创建成功');
         setNewFolderName('');
+        setNewFolderVisibility('PRIVATE');
         setShowNewFolder(false);
         fetchFolders();
       } else {
@@ -303,6 +319,44 @@ export default function FilesPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleMoveFile = async () => {
+    if (!movingFile || selectedTargetFolder === '') {
+      toast.error('请选择目标文件夹');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/files/${movingFile.id}/move`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          folderId: selectedTargetFolder === 'root' ? null : selectedTargetFolder
+        })
+      });
+      
+      if (response.ok) {
+        toast.success('文件移动成功');
+        setShowMoveDialog(false);
+        setMovingFile(null);
+        setSelectedTargetFolder('');
+        fetchFiles();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || '文件移动失败');
+      }
+    } catch (error) {
+      toast.error('网络错误');
+    }
+  };
+
+  const handleCancelMove = () => {
+    setShowMoveDialog(false);
+    setMovingFile(null);
+    setSelectedTargetFolder('');
   };
 
   const getFileIcon = (fileType: string, mimeType: string) => {
@@ -437,12 +491,15 @@ export default function FilesPage() {
                     onChange={(e) => setUploadForm(prev => ({ ...prev, folderId: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">{currentFolder ? `当前文件夹: ${currentFolder.name}` : '根目录'}</option>
+                    <option value="">📁 根目录</option>
+                    {currentFolder && (
+                      <option value={currentFolder.id}>📁 当前文件夹: {currentFolder.name}</option>
+                    )}
                     {getAllFolders().map(folder => (
                       <option key={folder.id} value={folder.id}>
-                        {'  '.repeat(getFolderDepth(folder))} {folder.name}
+                        {'  '.repeat(getFolderDepth(folder))} 📁 {folder.name}
                       </option>
-                           ))}
+                    ))}
                   </select>
                 </div>
                 
@@ -584,6 +641,18 @@ export default function FilesPage() {
                       className="mt-2 h-11"
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="newFolderVisibility" className="text-gray-700 font-medium">可见性</Label>
+                    <select
+                      id="newFolderVisibility"
+                      value={newFolderVisibility}
+                      onChange={(e) => setNewFolderVisibility(e.target.value as 'PRIVATE' | 'COUPLE')}
+                      className="w-full mt-2 h-11 px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
+                    >
+                      <option value="PRIVATE">🔒 仅自己可见</option>
+                      <option value="COUPLE">💕 情侣共享</option>
+                    </select>
+                  </div>
                   <div className="flex gap-3 pt-2">
                     <Button onClick={handleCreateFolder} className="flex-1 h-11 bg-blue-600 hover:bg-blue-700">
                       <Plus className="h-4 w-4 mr-2" />
@@ -638,7 +707,20 @@ export default function FilesPage() {
                              <Folder className="h-8 w-8 text-blue-600" />
                            </div>
                            <div className="flex-1 min-w-0">
-                             <h4 className="font-semibold text-gray-900 truncate group-hover:text-blue-900">{folder.name}</h4>
+                             <div className="flex items-start gap-2">
+                               <h4 className="font-semibold text-gray-900 group-hover:text-blue-900 flex-1 min-w-0 break-words leading-tight">{folder.name}</h4>
+                               <div className="flex-shrink-0 mt-0.5">
+                                 {folder.visibility === 'COUPLE' ? (
+                                   <div title="情侣共享">
+                                     <Users className="h-4 w-4 text-pink-500" />
+                                   </div>
+                                 ) : (
+                                   <div title="仅自己可见">
+                                     <Lock className="h-4 w-4 text-gray-400" />
+                                   </div>
+                                 )}
+                               </div>
+                             </div>
                              <div className="flex items-center gap-3 mt-1">
                                <span className="text-sm text-gray-500 flex items-center gap-1">
                                  <File className="h-3 w-3" />
@@ -669,7 +751,16 @@ export default function FilesPage() {
                  <h3 className="text-2xl font-semibold text-gray-900 mb-3">暂无文件</h3>
                  <p className="text-gray-600 mb-8 max-w-md mx-auto">这里还很空呢！上传你的第一个文件，开始构建你的资料库吧</p>
                  <Button 
-                   onClick={() => setShowUploadForm(true)}
+                   onClick={() => {
+                     setShowUploadForm(true);
+                     // 延迟一点时间确保表单已渲染，然后触发文件选择
+                     setTimeout(() => {
+                       const fileInput = document.getElementById('file-upload');
+                       if (fileInput) {
+                         fileInput.click();
+                       }
+                     }, 100);
+                   }}
                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
                  >
                    <Upload className="h-5 w-5 mr-2" />
@@ -694,9 +785,9 @@ export default function FilesPage() {
                        <div className="p-2 bg-gray-100 rounded-lg group-hover:bg-gray-200 transition-colors">
                          {getFileIcon(file.fileType, file.mimeType)}
                        </div>
-                       <div className="flex-1 min-w-0">
+                       <div className="flex-1 min-w-0 max-w-[200px]">
                          <CardTitle 
-                           className="text-sm font-semibold group-hover:text-blue-900 break-words line-clamp-2"
+                           className="text-sm font-semibold group-hover:text-blue-900 break-words line-clamp-2 leading-tight overflow-hidden text-ellipsis"
                            title={file.displayName}
                          >
                            {file.displayName}
@@ -717,14 +808,27 @@ export default function FilesPage() {
                          </div>
                        )}
                        {file.user.id === user.id && (
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => handleDeleteFile(file.id)}
-                           className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full"
-                         >
-                           <Trash2 className="h-3 w-3" />
-                         </Button>
+                         <>
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => {
+                               setMovingFile(file);
+                               setShowMoveDialog(true);
+                             }}
+                             className="h-7 w-7 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full"
+                           >
+                             <Move className="h-3 w-3" />
+                           </Button>
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => handleDeleteFile(file.id)}
+                             className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full"
+                           >
+                             <Trash2 className="h-3 w-3" />
+                           </Button>
+                         </>
                        )}
                      </div>
                    </div>
@@ -798,6 +902,79 @@ export default function FilesPage() {
           onClose={() => setPreviewFile(null)}
         />
       )}
+
+      {/* 文件移动对话框 */}
+      <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Move className="h-6 w-6 text-blue-600" />
+              移动文件
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              将文件 <span className="font-medium text-gray-800">"{movingFile?.displayName}"</span> 移动到指定文件夹
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <Label htmlFor="targetFolder" className="text-sm font-medium text-gray-700">
+                选择目标文件夹
+              </Label>
+              <select
+                id="targetFolder"
+                value={selectedTargetFolder}
+                onChange={(e) => setSelectedTargetFolder(e.target.value)}
+                className="w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 shadow-sm transition-colors"
+              >
+                <option value="" disabled>
+                  请选择目标文件夹...
+                </option>
+                <option value="root" className="font-medium">
+                  📁 根目录
+                </option>
+                {getAllFolders().map(folder => (
+                  <option key={folder.id} value={folder.id} className="py-2">
+                    {'  '.repeat(getFolderDepth(folder))} 📁 {folder.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {selectedTargetFolder && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-blue-800">
+                  <Move className="h-4 w-4" />
+                  <span>
+                    将移动到: <span className="font-medium">
+                      {selectedTargetFolder === 'root' 
+                        ? '根目录' 
+                        : getAllFolders().find(f => f.id === selectedTargetFolder)?.name
+                      }
+                    </span>
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex gap-3 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={handleCancelMove}
+                className="flex-1 h-11 border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                取消
+              </Button>
+              <Button 
+                onClick={handleMoveFile}
+                disabled={!selectedTargetFolder}
+                className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                确认移动
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
