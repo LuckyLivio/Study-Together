@@ -1,4 +1,4 @@
-import { PrismaClient } from '@/generated/prisma';
+import { PrismaClient } from '../generated/prisma';
 
 // 全局Prisma实例，避免在开发环境中创建过多连接
 const globalForPrisma = globalThis as unknown as {

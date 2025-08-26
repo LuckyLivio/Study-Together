@@ -331,6 +331,219 @@ async function main() {
   }
   console.log('✅ 示例聊天对话创建完成');
 
+  // 9. 创建课程表数据
+  console.log('📚 创建课程表数据...');
+  if (alice && bob) {
+    // 为Alice创建课程
+    const aliceCourses = [
+      {
+        userId: alice.id,
+        name: '高等数学',
+        code: 'MATH101',
+        instructor: '张教授',
+        location: '教学楼A101',
+        description: '微积分基础课程',
+        credits: 4.0,
+        color: '#3B82F6',
+      },
+      {
+        userId: alice.id,
+        name: '英语听说',
+        code: 'ENG201',
+        instructor: '李老师',
+        location: '语音室B203',
+        description: '英语口语和听力训练',
+        credits: 2.0,
+        color: '#10B981',
+      },
+      {
+        userId: alice.id,
+        name: '计算机基础',
+        code: 'CS101',
+        instructor: '王教授',
+        location: '机房C301',
+        description: '计算机科学导论',
+        credits: 3.0,
+        color: '#F59E0B',
+      },
+    ];
+
+    // 为Bob创建课程
+    const bobCourses = [
+      {
+        userId: bob.id,
+        name: '高等数学',
+        code: 'MATH101',
+        instructor: '张教授',
+        location: '教学楼A101',
+        description: '微积分基础课程',
+        credits: 4.0,
+        color: '#3B82F6',
+      },
+      {
+        userId: bob.id,
+        name: '物理学',
+        code: 'PHY101',
+        instructor: '赵教授',
+        location: '实验楼D201',
+        description: '大学物理基础',
+        credits: 4.0,
+        color: '#8B5CF6',
+      },
+      {
+        userId: bob.id,
+        name: '程序设计',
+        code: 'CS102',
+        instructor: '刘老师',
+        location: '机房C302',
+        description: 'Python程序设计',
+        credits: 3.0,
+        color: '#EF4444',
+      },
+    ];
+
+    const allCourses = [...aliceCourses, ...bobCourses];
+    const createdCourses = [];
+
+    for (const course of allCourses) {
+      const createdCourse = await prisma.course.create({ data: course });
+      createdCourses.push(createdCourse);
+    }
+
+    // 创建课程时间表
+    const schedules = [
+      // Alice的高等数学 - 周一、周三 8:00-9:40
+      {
+        courseId: createdCourses[0].id,
+        dayOfWeek: 1, // 周一
+        startTime: '08:00',
+        endTime: '09:40',
+        weeks: JSON.stringify([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]),
+      },
+      {
+        courseId: createdCourses[0].id,
+        dayOfWeek: 3, // 周三
+        startTime: '08:00',
+        endTime: '09:40',
+        weeks: JSON.stringify([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]),
+      },
+      // Alice的英语听说 - 周二、周四 10:00-11:40
+      {
+        courseId: createdCourses[1].id,
+        dayOfWeek: 2, // 周二
+        startTime: '10:00',
+        endTime: '11:40',
+        weeks: JSON.stringify([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]),
+      },
+      {
+        courseId: createdCourses[1].id,
+        dayOfWeek: 4, // 周四
+        startTime: '10:00',
+        endTime: '11:40',
+        weeks: JSON.stringify([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]),
+      },
+      // Alice的计算机基础 - 周五 14:00-16:40
+      {
+        courseId: createdCourses[2].id,
+        dayOfWeek: 5, // 周五
+        startTime: '14:00',
+        endTime: '16:40',
+        weeks: JSON.stringify([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]),
+      },
+      // Bob的高等数学 - 周一、周三 8:00-9:40 (与Alice相同)
+      {
+        courseId: createdCourses[3].id,
+        dayOfWeek: 1, // 周一
+        startTime: '08:00',
+        endTime: '09:40',
+        weeks: JSON.stringify([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]),
+      },
+      {
+        courseId: createdCourses[3].id,
+        dayOfWeek: 3, // 周三
+        startTime: '08:00',
+        endTime: '09:40',
+        weeks: JSON.stringify([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]),
+      },
+      // Bob的物理学 - 周二、周四 14:00-15:40
+      {
+        courseId: createdCourses[4].id,
+        dayOfWeek: 2, // 周二
+        startTime: '14:00',
+        endTime: '15:40',
+        weeks: JSON.stringify([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]),
+      },
+      {
+        courseId: createdCourses[4].id,
+        dayOfWeek: 4, // 周四
+        startTime: '14:00',
+        endTime: '15:40',
+        weeks: JSON.stringify([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]),
+      },
+      // Bob的程序设计 - 周五 10:00-12:40
+      {
+        courseId: createdCourses[5].id,
+        dayOfWeek: 5, // 周五
+        startTime: '10:00',
+        endTime: '12:40',
+        weeks: JSON.stringify([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]),
+      },
+    ];
+
+    for (const schedule of schedules) {
+      await prisma.courseSchedule.create({ data: schedule });
+    }
+
+    // 创建课程评价
+    const evaluations = [
+      {
+        courseId: createdCourses[0].id, // Alice的高等数学
+        userId: alice.id,
+        rating: 4.5,
+        difficulty: 4,
+        workload: 4,
+        comment: '张教授讲得很清楚，但是作业比较多，需要多练习',
+        isRecommended: true,
+        isShared: true,
+      },
+      {
+        courseId: createdCourses[1].id, // Alice的英语听说
+        userId: alice.id,
+        rating: 4.0,
+        difficulty: 2,
+        workload: 2,
+        comment: '李老师很有耐心，课堂氛围轻松，对提高口语很有帮助',
+        isRecommended: true,
+        isShared: true,
+      },
+      {
+        courseId: createdCourses[3].id, // Bob的高等数学
+        userId: bob.id,
+        rating: 4.0,
+        difficulty: 4,
+        workload: 4,
+        comment: '内容有一定难度，但是很有用，建议提前预习',
+        isRecommended: true,
+        isShared: true,
+      },
+      {
+        courseId: createdCourses[5].id, // Bob的程序设计
+        userId: bob.id,
+        rating: 5.0,
+        difficulty: 3,
+        workload: 3,
+        comment: '刘老师讲得非常好，实践性强，学到了很多实用技能',
+        isRecommended: true,
+        isShared: true,
+      },
+    ];
+
+    for (const evaluation of evaluations) {
+      await prisma.courseEvaluation.create({ data: evaluation });
+    }
+  }
+  console.log('✅ 课程表数据创建完成');
+
   console.log('🎉 数据库初始化完成！');
   console.log('\n📊 初始化统计:');
   console.log(`👥 用户数量: ${await prisma.user.count()}`);
@@ -340,6 +553,9 @@ async function main() {
   console.log(`📝 学习任务: ${await prisma.studyTask.count()}`);
   console.log(`💌 留言数量: ${await prisma.messageWallPost.count()}`);
   console.log(`💬 聊天对话: ${await prisma.chatConversation.count()}`);
+  console.log(`📚 课程数量: ${await prisma.course.count()}`);
+  console.log(`📋 课程时间表: ${await prisma.courseSchedule.count()}`);
+  console.log(`⭐ 课程评价: ${await prisma.courseEvaluation.count()}`);
   console.log(`⚙️ 站点设置: ${await prisma.siteSettings.count()}`);
 }
 
