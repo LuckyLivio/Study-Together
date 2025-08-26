@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Heart, BookOpen, Clock, Target, Calendar, User, Users, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth-store'
+import SystemStatus from './system-status'
 // 简单的倒计时显示组件
 function SimpleCountdown({ targetDate }: { targetDate: Date }) {
   const [timeLeft, setTimeLeft] = useState('')
@@ -598,6 +599,9 @@ export default function CoupleDashboard() {
             </CardContent>
           </Card>
         )}
+
+        {/* 网站运行状态 */}
+        <SystemStatus />
       </div>
     </div>
   )
