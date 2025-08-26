@@ -49,9 +49,29 @@ export async function POST(request: NextRequest) {
       })
     ])
     
-    // 模拟番茄时间和打卡数据
-    const pomodoroSessions = Math.floor(Math.random() * 20) + 5
-    const checkinRecords = Math.floor(Math.random() * 7) + 1
+    // 获取真实的番茄时间和打卡数据
+    const [pomodoroData, checkinData] = await Promise.all([
+      // 获取番茄时间会话数据
+      prisma.studyTask.count({
+        where: {
+          plan: { userId },
+          isCompleted: true,
+          duration: { gte: 25 } // 假设番茄时间至少25分钟
+        }
+      }),
+      
+      // 获取打卡记录数据
+      prisma.studyPlan.count({
+        where: {
+          userId,
+          title: '每日打卡',
+          isCompleted: true
+        }
+      })
+    ])
+    
+    const pomodoroSessions = pomodoroData
+    const checkinRecords = checkinData
 
     // 计算总学习时间（分钟）
     const totalStudyTime = studyPlans.reduce((total: number, plan: any) => {
@@ -101,9 +121,29 @@ export async function POST(request: NextRequest) {
           })
         ])
         
-        // 模拟伴侣数据
-        const partnerPomodoro = Math.floor(Math.random() * 20) + 3
-        const partnerCheckin = Math.floor(Math.random() * 7) + 1
+        // 获取伴侣的真实番茄时间和打卡数据
+        const [partnerPomodoroData, partnerCheckinData] = await Promise.all([
+          // 获取伴侣番茄时间会话数据
+          prisma.studyTask.count({
+            where: {
+              plan: { userId: partner.id },
+              isCompleted: true,
+              duration: { gte: 25 } // 假设番茄时间至少25分钟
+            }
+          }),
+          
+          // 获取伴侣打卡记录数据
+          prisma.studyPlan.count({
+            where: {
+              userId: partner.id,
+              title: '每日打卡',
+              isCompleted: true
+            }
+          })
+        ])
+        
+        const partnerPomodoro = partnerPomodoroData
+        const partnerCheckin = partnerCheckinData
 
         const partnerTotalStudyTime = partnerPlans.reduce((total: number, plan: any) => {
           return total + plan.tasks.reduce((planTotal: number, task: any) => {
