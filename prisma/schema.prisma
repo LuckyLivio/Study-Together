@@ -60,6 +60,10 @@ model User {
   folders           Folder[]
   fileCategories    FileCategory[]
   
+  // Course relationships
+  courses           Course[]
+  courseEvaluations CourseEvaluation[]
+  
   @@map("users")
 }
 
@@ -444,4 +448,90 @@ enum FileVisibility {
   PRIVATE     // 仅自己可见
   COUPLE      // 情侣共享
   PUBLIC      // 公开（暂时保留，未来可能用到）
+}
+
+// 课程表相关模型
+
+// 课程模型
+model Course {
+  id          String    @id @default(cuid())
+  userId      String    // 课程所属用户
+  name        String    // 课程名称
+  code        String?   // 课程代码
+  instructor  String?   // 授课教师
+  location    String?   // 上课地点
+  description String?   // 课程描述
+  credits     Float?    // 学分
+  color       String    @default("#3B82F6") // 课程颜色
+  
+  // 时间戳
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 关联关系
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedules   CourseSchedule[]
+  evaluations CourseEvaluation[]
+  
+  @@map("courses")
+}
+
+// 课程时间表模型
+model CourseSchedule {
+  id        String    @id @default(cuid())
+  courseId  String    // 所属课程
+  dayOfWeek Int       // 星期几 (1-7, 1=周一)
+  startTime String    // 开始时间 (HH:mm格式)
+  endTime   String    // 结束时间 (HH:mm格式)
+  weeks     String    @default("") // 上课周次 (JSON格式，如[1,2,3,4,5])
+  
+  // 时间戳
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  // 关联关系
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@map("course_schedules")
+}
+
+// 课程评价模型
+model CourseEvaluation {
+  id          String    @id @default(cuid())
+  courseId    String    // 所属课程
+  userId      String    // 评价用户
+  rating      Float     // 评分 (1-5)
+  difficulty  Int       // 难度 (1-5, 1=很简单, 5=很困难)
+  workload    Int       // 工作量 (1-5, 1=很轻松, 5=很繁重)
+  comment     String?   // 评价内容
+  isRecommended Boolean @default(true) // 是否推荐
+  isShared    Boolean   @default(false) // 是否共享给情侣
+  
+  // 时间戳
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 关联关系
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // 确保同一用户对同一课程只能有一个评价
+  @@unique([courseId, userId])
+  @@map("course_evaluations")
+}
+
+// 空闲时间段模型（用于比对两人的空闲时间）
+model FreeTimeSlot {
+  id        String    @id @default(cuid())
+  coupleId  String    // 所属情侣
+  dayOfWeek Int       // 星期几 (1-7, 1=周一)
+  startTime String    // 开始时间 (HH:mm格式)
+  endTime   String    // 结束时间 (HH:mm格式)
+  duration  Int       // 时长（分钟）
+  
+  // 时间戳
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  @@map("free_time_slots")
 }

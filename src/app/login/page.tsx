@@ -25,12 +25,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  // 如果已登录，重定向到主页
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/')
-    }
-  }, [isAuthenticated, router])
+  // 重定向逻辑由AuthGuard处理，这里不需要额外的useEffect
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,9 +43,7 @@ export default function LoginPage() {
       toast.success('登录成功！正在跳转到主页...', {
         duration: 1500
       })
-      setTimeout(() => {
-        router.push('/')
-      }, 1500)
+      // 移除手动重定向，让useEffect处理
     } else {
       setError(result.message)
       toast.error(result.message, {
