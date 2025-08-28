@@ -175,7 +175,7 @@ export function AddCourseDialog({ onCourseAdded, onClose, editingCourse }: AddCo
           dayOfWeek: schedule.dayOfWeek,
           startTime: schedule.startTime,
           endTime: schedule.endTime,
-          weeks: JSON.stringify(schedule.weeks)
+          weeks: schedule.weeks
         }))
       };
 

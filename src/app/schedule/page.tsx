@@ -50,6 +50,7 @@ export default function SchedulePage() {
   const [error, setError] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [activeTab, setActiveTab] = useState('schedule');
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
 
   // 获取课程列表
   const fetchCourses = async () => {
@@ -85,6 +86,12 @@ export default function SchedulePage() {
   // 处理课程删除
   const handleCourseDeleted = () => {
     fetchCourses();
+  };
+
+  // 处理课程编辑
+  const handleCourseEdit = (course: Course) => {
+    setEditingCourse(course);
+    setShowAddDialog(true);
   };
 
   // 处理课程导入成功
@@ -230,7 +237,11 @@ export default function SchedulePage() {
         </TabsContent>
 
         <TabsContent value="courses" className="space-y-4">
-          <CourseList courses={courses} onCourseDeleted={handleCourseDeleted} />
+          <CourseList 
+            courses={courses} 
+            onCourseDeleted={handleCourseDeleted}
+            onCourseEdit={handleCourseEdit}
+          />
         </TabsContent>
 
         <TabsContent value="free-time" className="space-y-4">
@@ -254,8 +265,12 @@ export default function SchedulePage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <AddCourseDialog
-              onClose={() => setShowAddDialog(false)}
+              onClose={() => {
+                setShowAddDialog(false);
+                setEditingCourse(null);
+              }}
               onCourseAdded={handleCourseAdded}
+              editingCourse={editingCourse}
             />
           </div>
         </div>
