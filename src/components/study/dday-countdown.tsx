@@ -408,7 +408,7 @@ export default function DDayCountdown({ goals, onGoalCreate, onGoalUpdate, onGoa
                     </div>
                     <Progress value={goal.currentProgress} className="h-2" />
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>时间进度: {progressFromTime.toFixed(1)}%</span>
+                      <span>时间进度: {Math.round(progressFromTime * 10) / 10}%</span>
                       <span>已过 {passedDays}/{time.totalDays} 天</span>
                     </div>
                   </div>

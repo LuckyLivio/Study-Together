@@ -191,10 +191,11 @@ export default function CoupleDashboard() {
         const upcomingGoal = goals.find((goal: any) => new Date(goal.targetDate) > new Date())
         const currentPlan = todayPlans.length > 0 ? todayPlans[0] : null
         
-        // 计算目标进度
+        // 计算目标进度（四舍五入到一位小数）
         let goalProgress = 0
         if (stats.weeklyGoal > 0) {
-          goalProgress = Math.min(100, (stats.weeklyProgress / stats.weeklyGoal) * 100)
+          const progress = Math.min(100, (stats.weeklyProgress / stats.weeklyGoal) * 100)
+          goalProgress = Math.round(progress * 10) / 10 // 四舍五入到一位小数
         }
         
         setCoupleData({
@@ -210,7 +211,7 @@ export default function CoupleDashboard() {
             currentPlan: currentPlan ? {
               title: currentPlan.title,
               progress: currentPlan.tasks.length > 0 ? 
-                (currentPlan.tasks.filter((task: any) => task.isCompleted).length / currentPlan.tasks.length) * 100 : 0
+                Math.round(((currentPlan.tasks.filter((task: any) => task.isCompleted).length / currentPlan.tasks.length) * 100) * 10) / 10 : 0
             } : undefined
           }
         })

@@ -97,9 +97,10 @@ export default function StudyProgressSync({ onSync }: StudyProgressSyncProps) {
     return () => clearInterval(interval)
   }, [])
   
-  // 计算周进度百分比
+  // 计算周进度百分比（四舍五入到一位小数）
   const getWeeklyProgressPercent = (stats: StudyStats) => {
-    return Math.min((stats.weeklyProgress / stats.weeklyGoal) * 100, 100)
+    const percent = Math.min((stats.weeklyProgress / stats.weeklyGoal) * 100, 100)
+    return Math.round(percent * 10) / 10 // 四舍五入到一位小数
   }
   
   // 获取进度状态颜色
