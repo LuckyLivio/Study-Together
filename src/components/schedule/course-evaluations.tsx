@@ -62,15 +62,68 @@ export function CourseEvaluations({ courses, onEvaluationChange }: CourseEvaluat
   const fetchEvaluations = async (courseId?: string) => {
     try {
       setLoading(true);
-      const url = courseId ? `/api/courses/${courseId}/evaluations` : '/api/courses/evaluations';
-      const response = await fetch(url);
       
-      if (!response.ok) {
-        throw new Error('获取评价失败');
+      if (courseId) {
+        // 获取特定课程的评价
+        const response = await fetch(`/api/courses/${courseId}/evaluations`);
+        
+        if (!response.ok) {
+          throw new Error('获取评价失败');
+        }
+        
+        const data = await response.json();
+        const allEvaluations = [];
+        
+        // 添加用户自己的评价
+        if (data.userEvaluation) {
+          allEvaluations.push({
+            ...data.userEvaluation,
+            course: data.course,
+            user: { id: data.userEvaluation.userId, username: '我' }
+          });
+        }
+        
+        // 添加情侣的共享评价
+          if (data.partnerEvaluations && data.partnerEvaluations.length > 0) {
+            allEvaluations.push(...data.partnerEvaluations.map((evaluation: any) => ({
+              ...evaluation,
+              course: data.course
+            })));
+        }
+        
+        setEvaluations(allEvaluations);
+      } else {
+        // 获取所有课程的评价 - 这个API端点可能不存在，我们需要遍历所有课程
+        const allEvaluations = [];
+        
+        for (const course of courses) {
+          try {
+            const response = await fetch(`/api/courses/${course.id}/evaluations`);
+            if (response.ok) {
+              const data = await response.json();
+              
+              if (data.userEvaluation) {
+                allEvaluations.push({
+                  ...data.userEvaluation,
+                  course: data.course,
+                  user: { id: data.userEvaluation.userId, username: '我' }
+                });
+              }
+              
+              if (data.partnerEvaluations && data.partnerEvaluations.length > 0) {
+                  allEvaluations.push(...data.partnerEvaluations.map((evaluation: any) => ({
+                    ...evaluation,
+                    course: data.course
+                  })));
+              }
+            }
+          } catch (error) {
+            console.error(`获取课程 ${course.name} 的评价失败:`, error);
+          }
+        }
+        
+        setEvaluations(allEvaluations);
       }
-      
-      const data = await response.json();
-      setEvaluations(data.evaluations || []);
     } catch (error) {
       console.error('获取评价失败:', error);
     } finally {
@@ -80,17 +133,19 @@ export function CourseEvaluations({ courses, onEvaluationChange }: CourseEvaluat
 
   // 组件加载时获取所有评价
   useEffect(() => {
-    fetchEvaluations();
-  }, []);
+    if (courses.length > 0) {
+      fetchEvaluations();
+    }
+  }, [courses]);
 
   // 当选择课程时获取该课程的评价
   useEffect(() => {
-    if (selectedCourse) {
+    if (selectedCourse && courses.length > 0) {
       fetchEvaluations(selectedCourse);
-    } else {
+    } else if (courses.length > 0) {
       fetchEvaluations();
     }
-  }, [selectedCourse]);
+  }, [selectedCourse, courses]);
 
   // 提交评价
   const handleSubmitEvaluation = async () => {

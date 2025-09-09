@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyUserAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import * as XLSX from 'xlsx';
+import Papa from 'papaparse';
 
 // CSV/Excel导入数据的验证模式
 const importCourseSchema = z.object({
@@ -113,18 +115,101 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '未授权访问' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { courses: rawCourses, replaceAll = false } = body;
+    const contentType = request.headers.get('content-type') || '';
+    let rawCourses: any[] = [];
+    let replaceExisting = false;
+
+    if (contentType.includes('multipart/form-data')) {
+      // 处理文件上传
+      const formData = await request.formData();
+      const file = formData.get('file') as File;
+      replaceExisting = formData.get('replaceExisting') === 'true';
+
+      if (!file) {
+        return NextResponse.json(
+          { error: '请选择要导入的文件' },
+          { status: 400 }
+        );
+      }
+
+      const fileBuffer = await file.arrayBuffer();
+      const fileName = file.name.toLowerCase();
+
+      if (fileName.endsWith('.csv')) {
+        // 解析CSV文件
+        const csvText = new TextDecoder().decode(fileBuffer);
+        const parseResult = Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          transformHeader: (header) => header.trim()
+        });
+        rawCourses = parseResult.data;
+      } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        // 解析Excel文件
+        const workbook = XLSX.read(fileBuffer, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        rawCourses = XLSX.utils.sheet_to_json(worksheet);
+      } else {
+        return NextResponse.json(
+          { error: '不支持的文件格式，请上传CSV或Excel文件' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // 处理JSON数据（文本导入）
+      const body = await request.json();
+      const { textData, replaceExisting: replace } = body;
+      replaceExisting = replace || false;
+
+      if (!textData || typeof textData !== 'string') {
+        return NextResponse.json(
+          { error: '请提供有效的文本数据' },
+          { status: 400 }
+        );
+      }
+
+      // 解析文本数据（CSV格式）
+      const csvData = Papa.parse(textData, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header: string) => {
+          // 转换中文列名到英文字段名
+          const headerMap: Record<string, string> = {
+            '课程名称': 'name',
+            '星期': 'dayOfWeek',
+            '开始时间': 'startTime',
+            '结束时间': 'endTime',
+            '地点': 'location',
+            '教师': 'teacher',
+            '学分': 'credits',
+            '周次': 'weeks'
+          };
+          return headerMap[header] || header;
+        }
+      });
+      const parseResult = csvData;
+
+      if (parseResult.data.length === 0) {
+        return NextResponse.json(
+          { error: '文本数据为空' },
+          { status: 400 }
+        );
+      }
+
+      // 由于使用了header:true，数据已经是对象格式
+      rawCourses = parseResult.data;
+    }
 
     if (!Array.isArray(rawCourses) || rawCourses.length === 0) {
       return NextResponse.json(
-        { error: '请提供有效的课程数据数组' },
+        { error: '没有找到有效的课程数据' },
         { status: 400 }
       );
     }
 
     // 如果选择替换所有课程，先删除现有课程
-    if (replaceAll) {
+    if (replaceExisting) {
       await prisma.course.deleteMany({
         where: {
           userId: authResult.userId
@@ -195,8 +280,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: '课程导入完成',
-      results: importResults
+      message: `课程导入完成，成功导入 ${importResults.success} 门课程${importResults.failed > 0 ? `，失败 ${importResults.failed} 门` : ''}`,
+      importedCount: importResults.success,
+      errors: importResults.errors
     }, { status: 200 });
   } catch (error) {
     console.error('导入课程失败:', error);
@@ -215,60 +301,76 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '未授权访问' }, { status: 401 });
     }
 
-    // 返回CSV导入模板
-    const template = {
-      headers: [
-        'name',        // 课程名称 (必填)
-        'code',        // 课程代码
-        'instructor',  // 授课教师
-        'location',    // 上课地点
-        'description', // 课程描述
-        'credits',     // 学分
-        'color',       // 课程颜色
-        'dayOfWeek',   // 星期几 (1-7 或 周一-周日)
-        'startTime',   // 开始时间 (HH:mm)
-        'endTime',     // 结束时间 (HH:mm)
-        'weeks'        // 上课周次 (如: 1-16 或 1,3,5-8)
-      ],
-      example: [
-        {
-          name: '高等数学',
-          code: 'MATH101',
-          instructor: '张教授',
-          location: '教学楼A101',
-          description: '微积分基础课程',
-          credits: 4,
-          color: '#3B82F6',
-          dayOfWeek: '周一',
-          startTime: '08:00',
-          endTime: '09:40',
-          weeks: '1-16'
-        },
-        {
-          name: '大学英语',
-          code: 'ENG101',
-          instructor: '李老师',
-          location: '外语楼201',
-          description: '英语听说读写训练',
-          credits: 3,
-          color: '#10B981',
-          dayOfWeek: 3,
-          startTime: '10:00',
-          endTime: '11:40',
-          weeks: '1-18'
-        }
-      ],
-      instructions: [
-        '1. name (课程名称) 为必填字段',
-        '2. dayOfWeek 可以是数字(1-7)或中文(周一-周日)或英文(Monday-Sunday)',
-        '3. startTime 和 endTime 使用 HH:mm 格式，如 08:00',
-        '4. weeks 支持范围格式(1-16)或列表格式(1,3,5-8)',
-        '5. credits 可以是数字或字符串',
-        '6. color 使用十六进制颜色代码，如 #3B82F6'
-      ]
-    };
+    // 创建CSV模板内容
+    const headers = [
+      'name',        // 课程名称 (必填)
+      'code',        // 课程代码
+      'instructor',  // 授课教师
+      'location',    // 上课地点
+      'credits',     // 学分
+      'color',       // 课程颜色
+      'dayOfWeek',   // 星期几 (1-7 或 周一-周日)
+      'startTime',   // 开始时间 (HH:mm)
+      'endTime',     // 结束时间 (HH:mm)
+      'weeks'        // 上课周次 (如: 1-16 或 1,3,5-8)
+    ];
 
-    return NextResponse.json(template);
+    const exampleData = [
+      [
+        '高等数学',
+        'MATH101',
+        '张教授',
+        '教学楼A101',
+        '4',
+        '#3B82F6',
+        '1',
+        '08:00',
+        '09:40',
+        '1-16'
+      ],
+      [
+        '大学英语',
+        'ENG101',
+        '李老师',
+        '外语楼201',
+        '3',
+        '#10B981',
+        '3',
+        '10:00',
+        '11:40',
+        '1-18'
+      ]
+    ];
+
+    // 生成CSV内容
+    const csvContent = Papa.unparse({
+      fields: headers,
+      data: exampleData
+    });
+
+    // 添加说明注释
+    const instructions = [
+      '# 课程导入模板说明：',
+      '# 1. name (课程名称) 为必填字段',
+      '# 2. dayOfWeek 可以是数字(1-7)，1=周一，7=周日',
+      '# 3. startTime 和 endTime 使用 HH:mm 格式，如 08:00',
+      '# 4. weeks 支持范围格式(1-16)或列表格式(1,3,5-8)',
+      '# 5. credits 可以是数字',
+      '# 6. color 使用十六进制颜色代码，如 #3B82F6',
+      '# 请删除这些注释行后再导入',
+      ''
+    ].join('\n');
+
+    const finalCsvContent = instructions + csvContent;
+
+    // 返回CSV文件
+    return new NextResponse(finalCsvContent, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="course_import_template.csv"'
+      }
+    });
   } catch (error) {
     console.error('获取导入模板失败:', error);
     return NextResponse.json(
