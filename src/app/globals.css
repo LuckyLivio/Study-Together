@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@plugin "@tailwindcss/typography";
 
 /* Line clamp utilities */
 .line-clamp-1 {

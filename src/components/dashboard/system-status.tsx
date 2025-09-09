@@ -160,7 +160,7 @@ export default function SystemStatus() {
             <XCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
             <p className="text-red-600">{error || '无法获取系统状态'}</p>
             <button 
-              onClick={fetchSystemStatus}
+              onClick={() => fetchSystemStatus(true)}
               className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             >
               重新获取

@@ -134,7 +134,7 @@ export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps)
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
   
-  // 计算进度百分比
+  // 计算进度百分比（四舍五入到一位小数）
   const getProgress = () => {
     const totalTime = currentSession === 'work' 
       ? settings.workDuration * 60
@@ -143,7 +143,8 @@ export default function PomodoroTimer({ onSessionComplete }: PomodoroTimerProps)
         : currentSession === 'custom'
           ? settings.customDuration * 60
           : settings.shortBreak * 60
-    return ((totalTime - timeLeft) / totalTime) * 100
+    const progress = ((totalTime - timeLeft) / totalTime) * 100
+    return Math.round(progress * 10) / 10 // 四舍五入到一位小数
   }
   
   // 获取会话标题和图标
