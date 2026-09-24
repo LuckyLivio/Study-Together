@@ -29,11 +29,12 @@ npm ci
 
 ```bash
 npx prisma generate
+node -e "const fs=require('node:fs'); fs.closeSync(fs.openSync('prisma/dev.db','a'))"
 npx prisma db push
 npm run dev
 ```
 
-打开 `http://localhost:3000/landing`，注册账号后体验主流程。配对功能需两个账号。执行 `db push` 会创建本地数据库文件，已被 `.gitignore` 排除。生产环境部署、第三方 API 可用性和多人同时使用尚未在此仓库中验证。
+中间的 Node 命令只在数据库文件不存在时创建空文件，避免 Windows 上 Prisma 首次创建 SQLite 文件时报 `Schema engine error`；已有文件不会被清空。打开 `http://localhost:3000/landing`，注册账号后体验主流程。配对功能需两个账号。本地数据库文件已被 `.gitignore` 排除。生产环境部署、第三方 API 可用性和多人同时使用尚未在此仓库中验证。
 
 ## 仍待完成或验证
 
