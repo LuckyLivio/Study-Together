@@ -39,3 +39,22 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# local configuration and credentials
+.env
+.env.*
+!.env.example
+cookies.txt
+*.pem
+*.key
+
+# local databases, request/response captures and user uploads
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+/*_response.json
+/*_error.json
+/*_success.json
+/folders_after_delete.json
+/public/uploads/
