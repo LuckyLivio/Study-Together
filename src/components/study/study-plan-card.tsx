@@ -83,7 +83,6 @@ export default function StudyPlanCard({ plan, onTaskToggle, onPlanUpdate }: Stud
     // 删除请求不需要Authorization头，因为后端会从cookie中获取token
     // 这样可以避免token获取的复杂性
     console.log('发送删除请求，依赖cookie中的auth-token')
-    console.log('当前cookie:', document.cookie)
     
     return {
       'Content-Type': 'application/json'

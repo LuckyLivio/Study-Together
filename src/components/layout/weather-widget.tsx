@@ -80,7 +80,7 @@ export function WeatherWidget() {
       }
       
       const ipUrl = `https://restapi.amap.com/v3/ip?key=${API_KEY}`
-      console.log('天气组件: 请求IP定位API:', ipUrl)
+      console.log('天气组件: 请求IP定位API')
       
       const response = await fetch(ipUrl)
       if (!response.ok) {
@@ -172,7 +172,7 @@ export function WeatherWidget() {
       
       // 第一步：通过逆地理编码获取城市adcode
       const regeoUrl = `${REGEO_URL}?key=${API_KEY}&location=${longitude},${latitude}`
-      console.log('天气组件: 请求逆地理编码API:', regeoUrl)
+      console.log('天气组件: 请求逆地理编码API')
       
       const regeoResponse = await fetch(regeoUrl)
       console.log('天气组件: 逆地理编码API响应状态:', regeoResponse.status)
@@ -200,7 +200,7 @@ export function WeatherWidget() {
       
       // 第二步：使用adcode查询天气信息
       const weatherUrl = `${WEATHER_URL}?key=${API_KEY}&city=${adcode}&extensions=base`
-      console.log('天气组件: 请求天气API:', weatherUrl)
+      console.log('天气组件: 请求天气API')
       
       const weatherResponse = await fetch(weatherUrl)
       console.log('天气组件: 天气API响应状态:', weatherResponse.status)

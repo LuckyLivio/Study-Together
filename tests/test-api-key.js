@@ -13,15 +13,12 @@ const apiKeyLine = lines.find(line => line.startsWith('DEEPSEEK_API_KEY='));
 if (apiKeyLine) {
   const apiKey = apiKeyLine.split('=')[1].replace(/"/g, '');
   
-  console.log('API Key:', apiKey);
   console.log('API Key length:', apiKey.length);
   
   // 检查每个字符的编码
   for (let i = 0; i < apiKey.length; i++) {
     const char = apiKey[i];
     const charCode = char.charCodeAt(0);
-    console.log(`Character ${i}: '${char}' (code: ${charCode})`);
-    
     if (charCode > 255) {
       console.log(`❌ Character at index ${i} has value ${charCode} which is greater than 255`);
     }
@@ -31,7 +28,7 @@ if (apiKeyLine) {
   try {
     const buffer = Buffer.from(apiKey, 'utf8');
     console.log('✅ Buffer conversion successful');
-    console.log('Buffer:', buffer.toString('hex'));
+    console.log('Buffer length:', buffer.length);
   } catch (error) {
     console.log('❌ Buffer conversion failed:', error.message);
   }

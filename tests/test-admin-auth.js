@@ -21,7 +21,7 @@ async function testAdminAuth() {
     
     const loginData = await loginResponse.json();
     console.log('登录响应状态:', loginResponse.status);
-    console.log('登录响应数据:', JSON.stringify(loginData, null, 2));
+    console.log('登录成功标记:', Boolean(loginData.success));
     
     if (!loginResponse.ok) {
       console.log('❌ 管理员登录失败');
@@ -30,7 +30,7 @@ async function testAdminAuth() {
     
     // 获取cookie
     const setCookieHeader = loginResponse.headers.get('set-cookie');
-    console.log('Set-Cookie 头:', setCookieHeader);
+    console.log('已收到 Set-Cookie:', Boolean(setCookieHeader));
     
     if (!setCookieHeader) {
       console.log('❌ 没有设置cookie');
@@ -45,7 +45,7 @@ async function testAdminAuth() {
     }
     
     const adminToken = adminTokenMatch[1];
-    console.log('✅ 管理员登录成功，获得token:', adminToken.substring(0, 20) + '...');
+    console.log('✅ 管理员登录成功，已获得 token');
     
     // 2. 使用admin token访问主页
     console.log('\n2. 使用admin token访问主页...');

@@ -10,7 +10,8 @@ async function testInviteGeneration() {
     const user = await prisma.user.findFirst({
       where: {
         email: { contains: 'test' }
-      }
+      },
+      select: { id: true, username: true, displayName: true, role: true }
     });
     
     if (!user) {
@@ -22,7 +23,8 @@ async function testInviteGeneration() {
           displayName: 'Test User',
           password: 'hashedpassword',
           gender: 'male'
-        }
+        },
+        select: { id: true, username: true, displayName: true, role: true }
       });
       console.log('创建的测试用户:', newUser);
     } else {
@@ -36,7 +38,8 @@ async function testInviteGeneration() {
           { person1Id: user?.id || 'test' },
           { person2Id: user?.id || 'test' }
         ]
-      }
+      },
+      select: { id: true, isComplete: true }
     });
     
     if (existingCouple) {
@@ -65,13 +68,16 @@ async function testInviteGeneration() {
           person2Id: null,
           person2Name: null,
           isComplete: false
-        }
+        },
+        select: { id: true, isComplete: true }
       });
       console.log('创建的情侣记录:', newCouple);
     }
     
     // 查看所有情侣记录
-    const allCouples = await prisma.couple.findMany();
+    const allCouples = await prisma.couple.findMany({
+      select: { id: true, isComplete: true }
+    });
     console.log('所有情侣记录:', allCouples);
     
   } catch (error) {

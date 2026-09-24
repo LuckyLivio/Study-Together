@@ -6,8 +6,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 async function testUser() {
   try {
-    const user = await prisma.user.findFirst();
-    console.log('First user:', user);
+    const user = await prisma.user.findFirst({
+      select: { id: true, username: true, role: true }
+    });
+    console.log('First user metadata:', user);
     
     if (user) {
       const token = jwt.sign(
@@ -15,7 +17,7 @@ async function testUser() {
         JWT_SECRET,
         { expiresIn: '24h' }
       );
-      console.log('Generated token:', token);
+      console.log('Generated token:', Boolean(token));
     }
   } catch (error) {
     console.error('Error:', error);

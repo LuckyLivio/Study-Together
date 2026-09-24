@@ -21,7 +21,7 @@ async function testAdminSecurity() {
     
     const loginData = await loginResponse.json();
     console.log('登录响应状态:', loginResponse.status);
-    console.log('登录响应数据:', JSON.stringify(loginData, null, 2));
+    console.log('登录成功标记:', Boolean(loginData.success));
     
     if (!loginResponse.ok || !loginData.success) {
       console.log('❌ 管理员登录失败');
@@ -29,7 +29,7 @@ async function testAdminSecurity() {
     }
     
     const adminToken = loginData.token;
-    console.log('✅ 管理员登录成功，token:', adminToken.substring(0, 20) + '...');
+    console.log('✅ 管理员登录成功，已获得 token:', Boolean(adminToken));
     
     // 2. 获取安全设置
     console.log('\n2. 获取安全设置...');

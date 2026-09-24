@@ -10,7 +10,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log('注册请求数据:', body);
     const { username, displayName, name, email, password, gender, bio, inviteCode } = body;
 
     // 处理前端发送的name字段，将其用作username和displayName

@@ -4,7 +4,7 @@ require('dotenv').config();
 // 测试数据库URL格式验证
 async function testDatabaseUrlValidation() {
   console.log('\n=== 测试数据库URL格式验证 ===');
-  console.log('DATABASE_URL:', process.env.DATABASE_URL);
+  console.log('DATABASE_URL 已配置:', Boolean(process.env.DATABASE_URL));
   
   try {
     // 检查URL格式
@@ -16,7 +16,6 @@ async function testDatabaseUrlValidation() {
     
     if (!url.startsWith('postgresql://') && !url.startsWith('postgres://')) {
       console.log('❌ URL格式错误: URL必须以 postgresql:// 或 postgres:// 开头');
-      console.log('当前URL:', url);
       return;
     }
     
@@ -40,7 +39,7 @@ async function testDatabaseUrlValidation() {
 async function testDeepSeekKeyEncoding() {
   console.log('\n=== 测试DeepSeek API Key字符编码 ===');
   const apiKey = process.env.DEEPSEEK_API_KEY;
-  console.log('DEEPSEEK_API_KEY:', apiKey);
+  console.log('DEEPSEEK_API_KEY 已配置:', Boolean(apiKey));
   
   if (!apiKey) {
     console.log('❌ DEEPSEEK_API_KEY 未设置');
@@ -54,7 +53,7 @@ async function testDeepSeekKeyEncoding() {
     const char = apiKey[i];
     const charCode = char.charCodeAt(0);
     if (charCode > 255) {
-      console.log(`❌ 字符编码错误: 位置 ${i} 的字符 '${char}' 编码值为 ${charCode} (大于255)`);
+      console.log(`❌ 字符编码错误: 位置 ${i} 的编码值为 ${charCode} (大于255)`);
       return;
     }
   }

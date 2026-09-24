@@ -167,10 +167,7 @@ async function testMessageWallComplete() {
     const token1 = jwt.sign({ userId: user1.id }, jwtSecret, { expiresIn: '1h' });
     const token2 = jwt.sign({ userId: user2.id }, jwtSecret, { expiresIn: '1h' });
     
-    console.log('User 1 JWT Token (for API testing):');
-    console.log(token1);
-    console.log('\nUser 2 JWT Token (for API testing):');
-    console.log(token2);
+    console.log('已为两个测试用户生成 API 测试 token:', Boolean(token1 && token2));
     
     console.log('\n--- Test API Endpoints ---');
     console.log('You can test the following API endpoints:');

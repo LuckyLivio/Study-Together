@@ -76,7 +76,7 @@ async function testButtonStatus() {
     });
     
     console.log('✅ 用户登录成功');
-    console.log('🍪 Cookies:', cookies);
+    console.log('🍪 已收到 Cookies:', Boolean(cookies));
     
     // 2. 获取用户状态
     const response = await getUserState(cookies);

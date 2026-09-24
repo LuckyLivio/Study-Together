@@ -4,7 +4,7 @@ require('dotenv').config();
 // 测试数据库连接
 async function testDatabase() {
   console.log('\n=== 测试数据库连接 ===');
-  console.log('DATABASE_URL:', process.env.DATABASE_URL);
+  console.log('DATABASE_URL 已配置:', Boolean(process.env.DATABASE_URL));
   
   try {
     const prisma = new PrismaClient();
@@ -26,8 +26,8 @@ async function testDatabase() {
 // 测试DeepSeek API
 async function testDeepSeekAPI() {
   console.log('\n=== 测试DeepSeek API ===');
-  console.log('DEEPSEEK_API_KEY:', process.env.DEEPSEEK_API_KEY);
-  console.log('DEEPSEEK_API_URL:', process.env.DEEPSEEK_API_URL);
+  console.log('DEEPSEEK_API_KEY 已配置:', Boolean(process.env.DEEPSEEK_API_KEY));
+  console.log('DEEPSEEK_API_URL 已配置:', Boolean(process.env.DEEPSEEK_API_URL));
   
   try {
     const response = await fetch(process.env.DEEPSEEK_API_URL, {
